@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 import { isAllowedFormOrigin } from '../src/lib/security.mjs';
 
 test('form origin accepts the configured production origin', () => {
@@ -33,4 +34,10 @@ test('form origin rejects deceptive hostnames containing localhost', () => {
 
 test('missing Origin remains allowed for non-browser/server clients', () => {
   assert.equal(isAllowedFormOrigin(null, 'https://zavadystrech.cz'), true);
+});
+
+test('enquiry endpoint uses the strict origin guard', () => {
+  const source = fs.readFileSync('src/pages/api/enquiry.ts', 'utf8');
+  assert.ok(source.includes('isAllowedFormOrigin'));
+  assert.equal(source.includes("origin.includes('localhost')"), false);
 });
