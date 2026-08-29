@@ -86,3 +86,11 @@ test('production deployment is Cloudflare-only and migration scaffolding is gone
   assert.ok(deployment.includes('main'));
   assert.ok(!deployment.includes('actions/deploy-pages'));
 });
+
+test('CI blocks high-severity production dependency vulnerabilities', () => {
+  const ci = fs.readFileSync(
+    path.join(root, '.github/workflows/cms-platform-ci.yml'),
+    'utf8',
+  );
+  assert.ok(ci.includes('npm audit --omit=dev --audit-level=high'));
+});
