@@ -27,7 +27,7 @@ jobs:
           path: _source
           fetch-depth: 1
 
-      - name: Replace target contents with source snapshot
+      - name: Copy all source content except workflow files
         shell: bash
         run: |
           set -euo pipefail
@@ -38,17 +38,17 @@ jobs:
           cp -a _source/. "$SOURCE_COPY/"
           rm -rf "$SOURCE_COPY/.git" _source
 
-          find . -mindepth 1 -maxdepth 1 ! -name '.git' -exec rm -rf {} +
-          rsync -a --delete --exclude='.git' "$SOURCE_COPY/" ./
+          find . -mindepth 1 -maxdepth 1 ! -name '.git' ! -name '.github' -exec rm -rf {} +
+          rsync -a --delete --exclude='.git' --exclude='.github/workflows/' "$SOURCE_COPY/" ./
 
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add -A
 
           if git diff --cached --quiet; then
-            echo 'Target already matches the source snapshot.'
+            echo 'Non-workflow content already matches the source snapshot.'
             exit 0
           fi
 
-          git commit -m 'Copy Claude repository snapshot [skip ci]'
+          git commit -m 'Copy Claude repository content except workflows [skip ci]'
           git push origin HEAD:main
