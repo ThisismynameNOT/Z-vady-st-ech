@@ -1,0 +1,45 @@
+name: Fix dependency lock
+
+on:
+  push:
+    branches: [feat/astro-tina-cloudflare-migration]
+    paths:
+      - 'package.json'
+      - '.github/workflows/fix-dependency-lock.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  lock:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Rebuild and verify lockfile
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f package-lock.json
+          npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+          npm ci --ignore-scripts --no-audit --no-fund
+      - name: Commit normalized lockfile
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add package-lock.json
+          if git diff --cached --quiet; then
+            echo 'Lockfile already normalized.'
+            exit 0
+          fi
+          git commit -m 'chore: normalize dependency lock [skip ci]'
+          git push origin HEAD:feat/astro-tina-cloudflare-migration
