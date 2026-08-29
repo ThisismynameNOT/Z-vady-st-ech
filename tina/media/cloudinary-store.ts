@@ -6,11 +6,11 @@ import type {
   MediaStore,
   MediaUploadOptions,
 } from 'tinacms';
-import { DEFAULT_MEDIA_UPLOAD_TYPES, sanitizeFilename } from 'tinacms';
+import { sanitizeFilename } from 'tinacms';
 
 export class RoofingCloudinaryMediaStore implements MediaStore {
   client: Client;
-  accept = DEFAULT_MEDIA_UPLOAD_TYPES.filter((type) => type.startsWith('image/'));
+  accept = 'image/*';
   baseUrl = '/api/cloudinary/media';
 
   constructor(client: Client) {
