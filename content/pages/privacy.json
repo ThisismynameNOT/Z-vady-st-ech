@@ -1,0 +1,28 @@
+{
+  "title": "Ochrana osobních údajů",
+  "slug": "ochrana-osobnich-udaju",
+  "seoTitle": "Ochrana osobních údajů | Závady střech Praha",
+  "seoDescription": "Informace o zpracování osobních údajů při odeslání poptávky.",
+  "canonicalUrl": "/ochrana-osobnich-udaju/",
+  "ogImage": "",
+  "noIndex": false,
+  "sections": [
+    {
+      "_template": "subHero",
+      "eyebrow": "Právní informace",
+      "heading": "Ochrana osobních údajů.",
+      "description": "Jaké údaje zpracováváme při odeslání poptávky a proč.",
+      "backgroundImage": ""
+    },
+    {
+      "_template": "richText",
+      "heading": "Poptávkový formulář",
+      "paragraphs": [
+        "Při odeslání poptávky zpracovává společnost Závady střech Praha s.r.o., IČO 08645191, údaje, které do formuláře uvedete — zejména jméno, telefon, e-mail, typ objektu, popis problému a případnou poznámku.",
+        "Účelem je vyřízení vaší poptávky, komunikace o požadované službě a navazující obchodní komunikace související s konkrétním požadavkem.",
+        "Poptávky jsou technicky zpracovány prostřednictvím zabezpečeného serverového endpointu na Cloudflare Workers a doručeny na konfigurovanou firemní e-mailovou adresu.",
+        "Tento text je provozní informace k formuláři a před ostrým spuštěním má být potvrzen provozovatelem webu; není vydáván za právní stanovisko."
+      ]
+    }
+  ]
+}

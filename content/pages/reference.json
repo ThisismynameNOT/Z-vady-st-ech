@@ -1,0 +1,33 @@
+{
+  "title": "Reference",
+  "slug": "reference",
+  "seoTitle": "Reference | Veřejné zakázky Závady střech Praha",
+  "seoDescription": "Veřejně dohledatelné zakázky Závady střech Praha s.r.o. v Registru smluv ČR.",
+  "canonicalUrl": "/reference/",
+  "ogImage": "/assets/images/national-museum.jpg",
+  "noIndex": false,
+  "sections": [
+    {
+      "_template": "subHero",
+      "eyebrow": "Reference",
+      "heading": "Důvěra, kterou lze otevřít.",
+      "description": "Nezaměňujeme počet smluvních záznamů za počet dokončených projektů. Ukazujeme veřejný zdroj, vybrané záznamy a jejich dohledatelné hodnoty.",
+      "backgroundImage": ""
+    },
+    {
+      "_template": "registryReferences",
+      "recordCount": 47,
+      "heading": "Veřejný důkaz místo marketingové věty.",
+      "description": "Vyhledávání v Registru smluv podle IČO 08645191 vrací zveřejněné smluvní záznamy. Výběr níže ukazuje typ a rozsah střešních prací."
+    },
+    {
+      "_template": "contactCta",
+      "eyebrow": "Potřebujete střechu řešit?",
+      "heading": "Začněte telefonem nebo stručnou poptávkou.",
+      "primaryLabel": "Zavolat",
+      "primaryUrl": "tel:+420732282409",
+      "secondaryLabel": "Poptat opravu",
+      "secondaryUrl": "/kontakt/"
+    }
+  ]
+}

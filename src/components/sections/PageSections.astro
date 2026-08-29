@@ -1,0 +1,5 @@
+---
+import SectionRenderer from './SectionRenderer.astro';
+const { sections=[] }=Astro.props;
+---
+{sections.map((section:any)=><SectionRenderer section={section} />)}

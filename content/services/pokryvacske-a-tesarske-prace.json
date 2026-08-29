@@ -1,0 +1,20 @@
+{
+  "name": "Pokrývačské a tesařské práce",
+  "slug": "pokryvacske-a-tesarske-prace",
+  "shortDescription": "Krytina, dřevěné prvky a návaznosti střešních konstrukcí.",
+  "description": "Práce odpovídající registrovanému oboru pokrývačství a tesařství.",
+  "items": [
+    "opravy a výměny krytiny podle stavu",
+    "práce na dřevěných střešních prvcích",
+    "opravy návazností a problematických detailů"
+  ],
+  "icon": "",
+  "heroImage": "/assets/images/roof-detail.jpg",
+  "relatedProjects": [
+    "prazska-trznice-hala-25"
+  ],
+  "featured": true,
+  "order": 2,
+  "seoTitle": "Pokrývačské a tesařské práce Praha",
+  "seoDescription": "Pokrývačské a tesařské práce na střechách v Praze."
+}

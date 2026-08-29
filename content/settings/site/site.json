@@ -1,0 +1,58 @@
+{
+  "siteName": "Závady střech Praha",
+  "siteUrl": "https://zavadystrech.cz",
+  "defaultSeoTitle": "Závady střech Praha | Opravy a údržba střech v Praze",
+  "defaultSeoDescription": "Opravy, údržba a detailní práce na střechách v Praze. Veřejně dohledatelné reference včetně Národního muzea a Pražské tržnice.",
+  "favicon": "/favicon.svg",
+  "logo": "",
+  "primaryCTA": "Poptat opravu",
+  "primaryCTALink": "/kontakt/",
+  "analyticsId": "",
+  "cookieSettings": {
+    "enabled": false
+  },
+  "navigation": [
+    {
+      "label": "Realizace",
+      "href": "/realizace/"
+    },
+    {
+      "label": "Služby",
+      "href": "/sluzby/"
+    },
+    {
+      "label": "Reference",
+      "href": "/reference/"
+    },
+    {
+      "label": "Firma",
+      "href": "/firma/"
+    },
+    {
+      "label": "Kontakt",
+      "href": "/kontakt/"
+    }
+  ],
+  "footerNavigation": [
+    {
+      "label": "Realizace",
+      "href": "/realizace/"
+    },
+    {
+      "label": "Služby",
+      "href": "/sluzby/"
+    },
+    {
+      "label": "Reference",
+      "href": "/reference/"
+    },
+    {
+      "label": "Firma",
+      "href": "/firma/"
+    },
+    {
+      "label": "Kontakt",
+      "href": "/kontakt/"
+    }
+  ]
+}

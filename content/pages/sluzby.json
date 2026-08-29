@@ -1,0 +1,33 @@
+{
+  "title": "Služby",
+  "slug": "sluzby",
+  "seoTitle": "Služby | Opravy a údržba střech Praha",
+  "seoDescription": "Opravy a údržba střech, pokrývačské a tesařské práce, klempířské detaily a práce ve výšce v Praze.",
+  "canonicalUrl": "/sluzby/",
+  "ogImage": "/assets/images/roof-detail.jpg",
+  "noIndex": false,
+  "sections": [
+    {
+      "_template": "subHero",
+      "eyebrow": "Služby",
+      "heading": "Co umíme na střeše vyřešit.",
+      "description": "Přehledně podle typu práce. Pokud nevíte, do které kategorie váš problém patří, stačí ho popsat nebo poslat fotografie.",
+      "backgroundImage": "/assets/images/roof-detail.jpg"
+    },
+    {
+      "_template": "servicesDetail",
+      "eyebrow": "Rozsah prací",
+      "heading": "Méně obecných slibů. Více konkrétní práce.",
+      "description": "Konkrétní řešení vždy závisí na stavu objektu."
+    },
+    {
+      "_template": "contactCta",
+      "eyebrow": "Když právě řešíte problém",
+      "heading": "Zatékání, poškozený detail nebo uvolněný prvek?",
+      "primaryLabel": "Zavolat",
+      "primaryUrl": "tel:+420732282409",
+      "secondaryLabel": "Poptat opravu",
+      "secondaryUrl": "/kontakt/"
+    }
+  ]
+}

@@ -1,0 +1,1 @@
+import type { APIRoute } from 'astro'; import { getSite } from '../lib/content'; export const GET:APIRoute=()=>{const site=getSite();return new Response(`User-agent: *\nAllow: /\nSitemap: ${site.siteUrl.replace(/\/$/,'')}/sitemap.xml\n`,{headers:{'Content-Type':'text/plain; charset=utf-8'}})};

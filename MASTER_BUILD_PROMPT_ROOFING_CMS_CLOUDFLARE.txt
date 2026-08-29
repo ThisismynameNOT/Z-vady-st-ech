@@ -1,0 +1,2190 @@
+# MASTER BUILD PROMPT — Convert Existing Roofing Website Into a Client-Editable CMS Platform
+
+## PROJECT
+
+Existing website:
+
+https://thisismynamenot.github.io/Claude/
+
+Existing source is hosted in GitHub.
+
+The current website design, visual identity, layout quality, animations, typography, spacing, responsiveness, content hierarchy, project presentation, and overall premium appearance are already approved.
+
+The purpose of this task is NOT to redesign the website.
+
+The purpose is to transform the existing static website into a professional, production-ready, client-editable website system while preserving the current frontend design as closely as technically possible.
+
+---
+
+# PRIMARY OBJECTIVE
+
+Convert the existing website into:
+
+Astro + TinaCMS + GitHub + Cloudinary + Cloudflare Workers
+
+The final website must allow a non-technical client to manage the website without editing code.
+
+The client must be able to:
+
+- add projects
+- edit projects
+- delete/archive projects
+- upload images
+- create project galleries
+- edit page titles
+- edit paragraphs
+- edit buttons
+- edit links
+- change contact information
+- edit services
+- edit company information
+- change homepage content
+- select featured projects
+- reorder content
+- add/remove predefined sections
+- update SEO information
+- publish changes safely
+
+The client must never need to open GitHub or edit HTML/Markdown/code manually.
+
+---
+
+# NON-NEGOTIABLE REQUIREMENT
+
+## Preserve the existing design.
+
+Do NOT turn this into:
+
+- a generic Astro starter
+- a generic CMS theme
+- a Tailwind template
+- a SaaS-looking site
+- a WordPress-looking site
+- a generic construction-company template
+
+Reproduce the existing website faithfully.
+
+The CMS must sit behind the design, not dictate the design.
+
+Think of this project as:
+
+Existing approved frontend + professional content architecture.
+
+Not:
+
+New CMS template using the old content.
+
+---
+
+# TARGET ARCHITECTURE
+
+Use:
+
+## Frontend
+- Astro
+- TypeScript where useful
+- semantic HTML
+- minimal JavaScript
+- component-based architecture
+
+## Content management
+- TinaCMS
+
+## Source control
+- GitHub
+
+## Production hosting
+- Cloudflare Workers
+
+GitHub must remain the source-code and content-history repository only.
+
+Do NOT use GitHub Pages for the final production website.
+
+The final public website should run on a proper production domain such as:
+
+https://zavadystrech.cz
+
+The CMS/editor should be available through a secure route such as:
+
+https://zavadystrech.cz/admin
+
+or the equivalent architecture supported by TinaCMS.
+
+## Website content storage
+Git-backed structured content.
+
+Use GitHub for:
+
+- page content
+- projects metadata
+- service information
+- company information
+- navigation
+- SEO metadata
+- structured site configuration
+
+## Media
+Use Cloudinary for production image storage.
+
+Cloudinary should handle:
+
+- project images
+- gallery images
+- before/after images
+- homepage photographs
+- large media assets
+
+Do not use the Git repository as a long-term dumping ground for hundreds of full-resolution client photographs.
+
+---
+
+# PRODUCTION DEPLOYMENT ARCHITECTURE
+
+The target publishing architecture should be:
+
+Client edits content in TinaCMS
+↓
+Content changes are committed/saved through Git-backed content
+↓
+GitHub remains the source of truth
+↓
+Cloudflare automatically builds/deploys the production site
+↓
+The live domain is updated
+
+Target:
+
+GitHub
+Source code + content history
+        │
+        ▼
+Cloudflare Workers
+        │
+        ▼
+Production website
+        │
+        ├── TinaCMS editing
+        ├── Cloudinary media
+        └── Forms/API functionality
+
+The client must not interact with GitHub, Cloudflare, Astro, Tina internals, or Cloudinary directly during normal editing.
+
+---
+
+# CLOUDFLARE REQUIREMENTS
+
+Use Cloudflare Workers as the preferred production deployment target.
+
+Where appropriate, use Cloudflare for:
+
+- production hosting
+- custom domain routing
+- HTTPS
+- CDN
+- caching
+- security headers
+- DDoS protection
+- form/API endpoints
+- rate limiting
+- redirects
+- environment secrets
+
+Avoid introducing a separate VPS unless there is a genuine technical requirement.
+
+Document:
+
+- Cloudflare project configuration
+- build command
+- output configuration
+- Worker configuration
+- custom domain configuration
+- environment variables/secrets
+- deployment workflow
+- rollback procedure
+- staging/preview workflow if available
+
+The solution should be easy to maintain without server administration.
+
+---
+
+# PHASE 1 — AUDIT THE CURRENT WEBSITE
+
+Before rewriting anything:
+
+1. inspect the entire existing website
+2. inspect all HTML
+3. inspect CSS
+4. inspect JavaScript
+5. inspect images
+6. inspect routes
+7. inspect navigation
+8. inspect desktop behavior
+9. inspect tablet behavior
+10. inspect mobile behavior
+11. inspect animations
+12. inspect hover states
+13. inspect form behavior
+14. inspect typography
+15. inspect spacing
+16. inspect accessibility semantics
+17. inspect metadata
+18. inspect page titles
+19. inspect canonical URLs
+20. inspect internal links
+
+Create an internal migration map.
+
+Do not blindly rebuild page-by-page without understanding the current system.
+
+---
+
+# EXISTING PAGES
+
+At minimum preserve the equivalent of the current routes such as:
+
+- Home
+- Firma
+- Služby
+- Realizace
+- Reference
+- Kontakt
+
+Preserve current Czech URL naming wherever reasonable.
+
+Do not unnecessarily change indexed URLs.
+
+If URLs must change, implement redirects where the hosting platform allows it.
+
+---
+
+# CURRENT CONTENT QUALITY
+
+The existing website already uses strong credibility mechanisms including:
+
+- real company information
+- project references
+- public-contract references
+- contract values where available
+- dates
+- Registry of Contracts links
+- NEN/public procurement references where appropriate
+- transparent language around claims that are not yet verified
+
+Preserve this credibility-first approach.
+
+Do not replace specific evidence with generic marketing claims.
+
+---
+
+# COPY CLEANUP DURING MIGRATION
+
+Preserve the substance of the current website, but clean up internal/meta language that talks about the website itself rather than the customer.
+
+Remove or rewrite phrases equivalent to:
+
+- “Web stavíme kolem…”
+- “Na hlavní stránce jen orientace.”
+- explanations about why a page exists
+- design-strategy language
+- auditor-style commentary that belongs in internal notes
+
+The public-facing copy should speak to the roofing customer.
+
+Do NOT invent new factual claims while cleaning the copy.
+
+---
+
+# COMPONENT ARCHITECTURE
+
+Break the frontend into reusable visual components.
+
+Example structure:
+
+src/
+├── components/
+│   ├── layout/
+│   │   ├── Header.astro
+│   │   ├── Footer.astro
+│   │   ├── Navigation.astro
+│   │   └── MobileMenu.astro
+│   │
+│   ├── sections/
+│   │   ├── Hero.astro
+│   │   ├── Intro.astro
+│   │   ├── TrustBar.astro
+│   │   ├── ServicesGrid.astro
+│   │   ├── ProjectGrid.astro
+│   │   ├── FeaturedProjects.astro
+│   │   ├── TextImage.astro
+│   │   ├── Stats.astro
+│   │   ├── Testimonials.astro
+│   │   ├── Gallery.astro
+│   │   ├── BeforeAfter.astro
+│   │   ├── FAQ.astro
+│   │   ├── ProcessSteps.astro
+│   │   ├── RegistryReferences.astro
+│   │   ├── ContactCTA.astro
+│   │   └── ContactForm.astro
+│   │
+│   └── ui/
+│       ├── Button.astro
+│       ├── ProjectCard.astro
+│       ├── ServiceCard.astro
+│       ├── SectionHeading.astro
+│       ├── Badge.astro
+│       └── Image.astro
+│
+├── layouts/
+│   └── BaseLayout.astro
+│
+├── pages/
+│   ├── index.astro
+│   ├── firma.astro
+│   ├── sluzby.astro
+│   ├── reference.astro
+│   ├── kontakt.astro
+│   └── realizace/
+│       ├── index.astro
+│       └── [slug].astro
+│
+└── styles/
+
+This structure is illustrative.
+
+Improve it where necessary.
+
+---
+
+# CONTENT ARCHITECTURE
+
+Create proper structured content collections.
+
+At minimum:
+
+content/
+├── pages/
+├── projects/
+├── services/
+└── settings/
+
+Do not scatter editable text across Astro components.
+
+All customer-editable copy should come from structured content or settings unless there is a deliberate reason otherwise.
+
+---
+
+# PROJECT CONTENT MODEL
+
+Projects are one of the most important parts of the system.
+
+Each project should support fields similar to:
+
+Project
+
+title
+slug
+status
+
+clientName
+buildingName
+location
+
+year
+dateStart
+dateCompleted
+
+contractValue
+currency
+
+shortDescription
+fullDescription
+
+services[]
+
+projectType
+buildingType
+
+heroImage
+
+gallery[]
+
+beforeImages[]
+afterImages[]
+
+registryLinks[]
+
+externalLinks[]
+
+featured
+
+homepagePriority
+
+verified
+
+seoTitle
+seoDescription
+
+createdAt
+updatedAt
+
+Not every field must be required.
+
+The CMS interface should remain understandable to a normal client.
+
+---
+
+# PROJECT FUNCTIONALITY
+
+The client must be able to select:
+
+Add project
+
+and fill out a form.
+
+After publishing, the project should automatically:
+
+- receive its own project URL
+- appear on the Realizace page
+- optionally appear on the homepage
+- optionally appear under relevant services
+- include its images
+- include metadata
+- include external verification links
+- include structured SEO metadata
+
+No developer should need to create a new page manually.
+
+---
+
+# PROJECT STATUS
+
+Support sensible project states, for example:
+
+- draft
+- published
+- archived
+
+Do not permanently delete historical project information by accident.
+
+If Tina workflow constraints make this model impractical, implement the closest safe equivalent and document it.
+
+---
+
+# FEATURED PROJECTS
+
+Projects should have fields such as:
+
+featured: true/false
+homepagePriority: number
+
+This allows the client to decide which projects appear prominently.
+
+Do not hardcode homepage projects.
+
+---
+
+# SERVICE CONTENT MODEL
+
+Services should become structured content.
+
+Example:
+
+Service
+
+name
+slug
+
+shortDescription
+description
+
+icon
+
+heroImage
+
+relatedProjects[]
+
+featured
+
+seoTitle
+seoDescription
+
+A new service should not require manually rewriting multiple components.
+
+---
+
+# GLOBAL COMPANY SETTINGS
+
+Create a central company/settings model.
+
+Example:
+
+CompanySettings
+
+companyName
+legalName
+ico
+dic
+
+phone
+secondaryPhone
+
+email
+
+address
+
+serviceArea
+
+openingHours
+
+googleMapsUrl
+
+facebookUrl
+instagramUrl
+linkedinUrl
+
+registryUrl
+nenUrl
+
+companyDescription
+
+footerText
+
+Contact information must not be duplicated across multiple components.
+
+Changing the phone number once should update it everywhere.
+
+---
+
+# BUSINESS EMAIL READINESS
+
+The site should be prepared to use a proper domain email such as:
+
+info@zavadystrech.cz
+poptavky@zavadystrech.cz
+
+Do not hardcode the current Seznam address throughout the frontend.
+
+Email must come from global company settings so it can be changed once and update everywhere.
+
+---
+
+# GLOBAL SITE SETTINGS
+
+Add editable global website settings.
+
+Example:
+
+SiteSettings
+
+siteName
+siteUrl
+
+defaultSeoTitle
+defaultSeoDescription
+
+logo
+favicon
+
+navigation
+
+footerNavigation
+
+primaryCTA
+primaryCTALink
+
+analyticsId
+
+cookieSettings
+
+---
+
+# PAGE BUILDER
+
+This is critical.
+
+Each main page should use a controlled block architecture.
+
+The client should be able to reorder sections and select from predefined section types.
+
+Example:
+
+Page
+
+title
+slug
+
+sections[]
+
+Possible section blocks:
+
+- Hero
+- Intro
+- Text
+- Text + Image
+- Image + Text
+- Full-width Image
+- Services
+- Featured Projects
+- Project Grid
+- Gallery
+- Before/After
+- Statistics
+- Process / Steps
+- References
+- Logos
+- Testimonials
+- FAQ
+- Registry Links
+- Contact CTA
+- Contact Form
+- Spacer
+
+---
+
+# IMPORTANT PAGE BUILDER RULE
+
+The client must NOT be allowed to insert arbitrary:
+
+- HTML
+- CSS
+- JavaScript
+- inline styles
+- custom font sizes
+- random colors
+- arbitrary layout rules
+
+The website must retain the design system.
+
+The CMS controls:
+
+content and approved layout combinations
+
+The frontend controls:
+
+design
+
+This prevents the customer from accidentally destroying the website.
+
+---
+
+# HERO BLOCK
+
+Editable fields might include:
+
+eyebrow
+heading
+description
+
+primaryButtonLabel
+primaryButtonUrl
+
+secondaryButtonLabel
+secondaryButtonUrl
+
+phoneButton
+
+backgroundImage
+
+theme
+alignment
+
+Only expose layout choices that actually exist in the design system.
+
+---
+
+# TEXT + IMAGE BLOCK
+
+Fields:
+
+eyebrow
+heading
+body
+
+image
+imageAlt
+
+imagePosition:
+left
+right
+
+buttonLabel
+buttonUrl
+
+---
+
+# GALLERY BLOCK
+
+Fields:
+
+heading
+description
+
+images[]
+
+layout:
+grid
+editorial
+masonry
+
+Only implement layouts consistent with the existing visual identity.
+
+---
+
+# PROJECT GRID BLOCK
+
+Fields could include:
+
+heading
+
+displayMode:
+featured
+all
+selected
+
+selectedProjects[]
+
+limit
+
+---
+
+# CTA BLOCK
+
+Fields:
+
+heading
+body
+
+primaryLabel
+primaryUrl
+
+secondaryLabel
+secondaryUrl
+
+---
+
+# TESTIMONIALS
+
+Support testimonials, but do not invent fake testimonials.
+
+Model:
+
+name
+company
+role
+quote
+source
+verified
+
+Only display real content entered by the client.
+
+---
+
+# TRUST CLAIMS
+
+The existing site has intentionally avoided making unsupported claims.
+
+Preserve that discipline.
+
+Do NOT invent:
+
+- certifications
+- number of employees
+- warranties
+- insurance coverage
+- years of experience
+- emergency response times
+- number of completed projects
+- customer satisfaction statistics
+- awards
+
+If these are eventually supplied by the company, create structured fields for them.
+
+---
+
+# PUBLIC CONTRACT / REFERENCE INTEGRITY
+
+The site should continue to distinguish:
+
+- registry records
+- projects
+- contracts
+- references
+
+Do not turn a count of Registry of Contracts records into a claim that the company completed the same number of unique projects unless that is factually verified.
+
+Maintain the current factual discipline around public data.
+
+---
+
+# IMAGE MANAGEMENT
+
+Integrate Cloudinary properly.
+
+The client should be able to:
+
+1. open CMS
+2. select an image field
+3. upload image
+4. see media library
+5. select image
+6. save
+7. publish
+
+Images should automatically support optimization.
+
+Where possible serve:
+
+- AVIF
+- WebP
+- responsive sizes
+
+Avoid shipping multi-megabyte photographs directly to mobile visitors.
+
+---
+
+# IMAGE METADATA
+
+Every important image should support:
+
+alt
+caption
+credit
+
+Do not force the client to input credit unless needed.
+
+---
+
+# REAL PROJECT PHOTOGRAPHY
+
+The CMS must make it very easy to add actual project photography later.
+
+This is one of the highest-value future improvements.
+
+Support:
+
+- hero photograph
+- project gallery
+- before photographs
+- after photographs
+- detail photographs
+- team/work-in-progress photography
+
+---
+
+# CONTEXTUAL / STOCK IMAGES
+
+If the existing site currently uses contextual, licensed, Wikimedia, Unsplash, or other non-company imagery:
+
+- do not present it as the company's own work
+- preserve accurate attribution where required
+- make replacement with real company photography easy through the CMS
+
+---
+
+# BEFORE / AFTER
+
+Create an optional reusable before/after component.
+
+It should work gracefully when only normal gallery images are available.
+
+Do not require every project to have before/after photography.
+
+---
+
+# CMS EXPERIENCE
+
+The CMS must be understandable by someone who does not know what:
+
+- Git
+- Markdown
+- Astro
+- React
+- JSON
+- YAML
+- frontmatter
+
+means.
+
+Use human-readable Czech labels where appropriate.
+
+For example:
+
+Instead of:
+
+heroImage
+
+show:
+
+Hlavní fotografie
+
+Instead of:
+
+shortDescription
+
+show:
+
+Krátký popis projektu
+
+---
+
+# CMS NAVIGATION
+
+Aim for an editor interface approximately like:
+
+Obsah
+
+Stránky
+├── Úvod
+├── Firma
+├── Služby
+├── Reference
+└── Kontakt
+
+Realizace
+├── Seznam realizací
+└── Přidat realizaci
+
+Služby
+
+Nastavení
+├── Firma
+├── Kontakt
+├── Navigace
+└── SEO
+
+---
+
+# CMS LANGUAGE
+
+Where Tina allows field labels/help text, use Czech labels for the client-facing editor.
+
+Developer-facing code may remain in English.
+
+Keep labels clear and non-technical.
+
+---
+
+# EDITOR SAFETY
+
+Prevent dangerous editing.
+
+Where appropriate:
+
+- validate URLs
+- validate phone numbers
+- prevent duplicate slugs
+- require project title
+- require valid main image types
+- enforce logical field types
+- use dropdowns instead of free-text configuration
+- prevent broken block combinations
+- warn before destructive actions
+
+---
+
+# DRAFT / PUBLISH WORKFLOW
+
+Where technically possible, provide a safe editing workflow.
+
+The client should ideally be able to:
+
+- edit
+- preview
+- save
+- publish
+
+If true preview is limited by the chosen Tina/hosting architecture, document the limitation and implement the best available alternative.
+
+---
+
+# VISUAL EDITING
+
+Use Tina's visual editing capabilities where technically appropriate.
+
+The client should be able to understand which content they are editing without navigating raw files.
+
+However:
+
+Do not compromise public frontend performance or architecture merely to force visual editing where it is not useful.
+
+---
+
+# GIT
+
+GitHub remains the source of truth.
+
+CMS edits should produce understandable commits.
+
+Example:
+
+Update project: Národní muzeum
+
+or equivalent.
+
+Do not create meaningless commit spam if avoidable.
+
+The production site must not depend on GitHub Pages.
+
+---
+
+# REPOSITORY VISIBILITY
+
+The repository should be compatible with private GitHub hosting if desired.
+
+Do not design the production system around the assumption that the repository must remain public.
+
+---
+
+# REPOSITORY HYGIENE
+
+Create:
+
+.env.example
+
+Never commit:
+
+- API secrets
+- Tina secret
+- Cloudinary secret
+- private tokens
+- GitHub access tokens
+- Cloudflare API tokens
+- form-service private credentials
+
+Update:
+
+.gitignore
+
+appropriately.
+
+---
+
+# ENVIRONMENT VARIABLES
+
+Document every required variable.
+
+For example:
+
+PUBLIC_TINA_CLIENT_ID=
+TINA_TOKEN=
+
+PUBLIC_CLOUDINARY_CLOUD_NAME=
+CLOUDINARY_API_KEY=
+CLOUDINARY_API_SECRET=
+
+CLOUDFLARE_ACCOUNT_ID=
+CLOUDFLARE_API_TOKEN=
+
+FORM_SECRET=
+
+Only expose variables publicly when actually safe to expose.
+
+Do not blindly use PUBLIC_ prefixes on secrets.
+
+---
+
+# FORMS
+
+Preserve and improve the existing enquiry flow.
+
+The existing multi-step project enquiry experience should not be removed simply because the site is being migrated.
+
+Maintain its user experience.
+
+Preferred production architecture:
+
+Browser
+↓
+Cloudflare Worker/API endpoint
+↓
+validated enquiry
+↓
+email delivery / configured destination
+
+Alternative form platforms may be used only if they materially simplify reliability without weakening ownership/security.
+
+Do not expose SMTP passwords or private keys in frontend JavaScript.
+
+---
+
+# FORM DATA
+
+Support useful structured enquiry data such as:
+
+- building type
+- problem type
+- project description
+- name
+- phone
+- email
+- preferred contact method
+- location
+- optional attachment/photo support if implemented safely
+- consent field if legally required
+
+Do not collect unnecessary sensitive information.
+
+---
+
+# SPAM PROTECTION
+
+Implement sensible protection:
+
+- honeypot
+- server-side validation
+- rate limiting
+- bot detection where practical
+- optional CAPTCHA only if needed
+
+Do not destroy conversion with aggressive CAPTCHA unless necessary.
+
+Cloudflare Turnstile may be considered if bot protection is required.
+
+---
+
+# FORM SUCCESS STATE
+
+Provide:
+
+- proper loading state
+- success state
+- error state
+- retry handling
+- validation messages
+
+Keep UI consistent with the website.
+
+---
+
+# EMAIL DELIVERY
+
+If the form sends email:
+
+- use a transactional mail provider or secure backend integration
+- do not use frontend mail credentials
+- make recipient addresses configurable
+- set a reliable reply-to behavior
+- protect against header injection
+- sanitize/validate user input
+
+Document the provider choice.
+
+---
+
+# SEO
+
+Preserve and improve technical SEO.
+
+Every page should support:
+
+seoTitle
+seoDescription
+canonicalUrl
+ogImage
+noIndex
+
+Implement:
+
+- proper <title>
+- meta descriptions
+- canonical URLs
+- OpenGraph
+- Twitter/social metadata
+- sitemap
+- robots.txt
+- clean URLs
+
+---
+
+# PROJECT SEO
+
+Each project should generate appropriate metadata.
+
+Example pattern:
+
+Oprava střechy Národního muzea | [Company Name]
+
+Do not use this exact copy unless appropriate.
+
+Generate from structured project data where useful.
+
+---
+
+# STRUCTURED DATA
+
+Where appropriate implement Schema.org structured data such as:
+
+- LocalBusiness
+- RoofingContractor where valid
+- Organization
+- Service
+- BreadcrumbList
+
+Do not add unsupported:
+
+- review stars
+- aggregate ratings
+- fake review counts
+- fake awards
+
+---
+
+# LOCAL SEO READINESS
+
+Prepare the system for:
+
+- service area
+- company address
+- phone number
+- business name
+- map link
+- opening hours
+- structured LocalBusiness data
+- Google Business Profile link if supplied
+
+Do not invent missing details.
+
+---
+
+# ACCESSIBILITY
+
+Maintain good accessibility.
+
+Check:
+
+- heading hierarchy
+- labels
+- keyboard navigation
+- focus states
+- contrast
+- form semantics
+- button semantics
+- navigation semantics
+- image alt text
+- mobile menu accessibility
+- skip navigation where useful
+- reduced-motion preference
+
+---
+
+# PERFORMANCE
+
+Do not allow the CMS migration to make the site slow.
+
+Targets:
+
+- excellent Lighthouse performance
+- responsive image loading
+- lazy-load non-critical media
+- minimal hydration
+- minimize third-party scripts
+- avoid unnecessary React runtime on public pages
+
+Use Astro's strengths.
+
+---
+
+# CORE WEB VITALS
+
+Optimize toward good:
+
+- LCP
+- CLS
+- INP
+
+Avoid:
+
+- layout shifts caused by images
+- blocking third-party scripts
+- excessive animation work
+- oversized image downloads
+
+---
+
+# JAVASCRIPT
+
+Do not hydrate components unnecessarily.
+
+Use JavaScript only for things requiring interaction such as:
+
+- navigation
+- form steps
+- galleries
+- before/after controls
+- animation triggers
+- CMS visual editing if required
+
+Static content should remain static.
+
+---
+
+# CSS
+
+Preserve the current visual system.
+
+Extract and clean existing CSS where useful but do not perform an aesthetic redesign.
+
+Create reusable variables/tokens for:
+
+- typography
+- spacing
+- breakpoints
+- border radius
+- shadows
+- colors
+- container widths
+- motion timing
+
+Avoid introducing inconsistent design values.
+
+---
+
+# RESPONSIVE BEHAVIOR
+
+Explicitly verify:
+
+- 320px
+- 375px
+- 390px
+- 430px
+- tablet
+- small laptop
+- desktop
+- large desktop
+
+Do not assume desktop design automatically adapts.
+
+---
+
+# NAVIGATION
+
+Navigation content should be editable through CMS settings where sensible.
+
+However, prevent the client from accidentally deleting critical navigation without warning if practical.
+
+Ensure:
+
+- desktop navigation works
+- mobile navigation works
+- focus trapping/accessibility is correct where needed
+- CTA remains prominent
+- phone CTA remains usable on mobile
+
+---
+
+# FOOTER
+
+Make footer company data dynamic.
+
+No duplicated hardcoded phone/email/address values.
+
+---
+
+# CONTENT MIGRATION
+
+Migrate all current legitimate website content.
+
+Do not:
+
+- silently remove content
+- shorten text without reason
+- invent replacement text
+- remove public-contract references
+- remove verification links
+- remove transparency language where it serves a real purpose
+- replace real project information with generic filler
+
+Clean up public copy only where it contains internal design commentary or unnecessarily defensive wording.
+
+---
+
+# CURRENT PROJECT DATA
+
+Preserve existing known projects currently displayed on the website.
+
+Each should become an individual CMS-managed project.
+
+Do not keep project information hardcoded into project cards.
+
+If there are four current projects, all four should become CMS entries.
+
+---
+
+# REGISTRY REFERENCES
+
+The website currently uses public-contract evidence as an important trust mechanism.
+
+Preserve this.
+
+Project/reference fields should support:
+
+label
+url
+source
+
+Examples might include:
+
+- Registr smluv
+- NEN
+- public procurement record
+- client reference
+
+---
+
+# REFERENCE COLLECTION
+
+If the site has a dedicated references page, support structured references separately from full project pages when necessary.
+
+Do not force every reference to become a full project if the available information does not justify one.
+
+---
+
+# LEGAL / PRIVACY PREPARATION
+
+Prepare the site architecture for:
+
+- privacy policy
+- cookie information
+- contact-form consent text where legally appropriate
+
+Do not invent legal documents pretending to be lawyer-approved.
+
+If placeholder legal content is required, clearly mark it as requiring client/legal review.
+
+---
+
+# COOKIE BEHAVIOR
+
+Do not show a pointless cookie banner if the site does not use non-essential cookies.
+
+If analytics/marketing scripts that require consent are introduced, implement consent correctly.
+
+---
+
+# ANALYTICS
+
+Prepare for analytics.
+
+Prefer privacy-conscious configuration.
+
+Support an editable/configurable analytics ID through environment/settings.
+
+Possible options include:
+
+- Cloudflare Web Analytics
+- Plausible
+- GA4 if specifically required
+
+Do not hardcode analytics credentials.
+
+---
+
+# ERROR HANDLING
+
+Create:
+
+- custom 404 page
+- safe missing-content behavior
+- safe missing-image behavior
+- useful CMS validation messages
+- graceful form errors
+
+If a project refers to a missing image, the site must not crash.
+
+---
+
+# SECURITY HEADERS
+
+Configure sensible production security headers where compatible, such as:
+
+- Content-Security-Policy
+- X-Content-Type-Options
+- Referrer-Policy
+- Permissions-Policy
+- frame restrictions where appropriate
+- HSTS after production HTTPS is confirmed
+
+Do not deploy a broken CSP that prevents the CMS, Cloudinary, forms, or required assets from working.
+
+---
+
+# CLOUDFLARE SECURITY
+
+Where useful configure:
+
+- HTTPS-only behavior
+- secure redirects
+- rate limiting for form/API endpoints
+- bot protection where appropriate
+- minimal exposed Worker routes
+- secrets through Cloudflare secret storage
+
+Do not expose Cloudflare credentials in frontend code.
+
+---
+
+# BUILD VALIDATION
+
+Before considering the migration complete:
+
+Run:
+
+npm install
+npm run build
+
+and any relevant:
+
+npm run lint
+npm run typecheck
+npm test
+
+commands.
+
+There must be no unexplained build errors.
+
+---
+
+# VISUAL REGRESSION TESTING
+
+Compare the new implementation against the existing live website.
+
+Check:
+
+- hero
+- header
+- mobile navigation
+- project cards
+- typography
+- section spacing
+- buttons
+- footer
+- contact form
+- project pages
+- responsive layouts
+- animations
+- hover states
+
+The migration should not accidentally downgrade the design.
+
+---
+
+# CMS TESTING
+
+Test the following workflow yourself:
+
+## Test 1 — Project creation
+
+Create a temporary project:
+
+Test Project
+
+Add:
+
+- title
+- description
+- hero image
+- gallery
+- location
+- year
+
+Verify it renders correctly.
+
+Then remove the test project.
+
+---
+
+## Test 2 — Edit homepage
+
+Change a homepage heading.
+
+Verify:
+
+CMS
+→ content change
+→ build/deployment
+→ frontend output
+
+Then restore original wording.
+
+---
+
+## Test 3 — Add section
+
+Add a legitimate block to a test page.
+
+Reorder it.
+
+Verify rendering.
+
+Remove it afterward.
+
+---
+
+## Test 4 — Image upload
+
+Upload/select media through the CMS.
+
+Confirm:
+
+- correct URL
+- responsive rendering
+- no broken images
+- alt-text support
+
+---
+
+## Test 5 — Global settings
+
+Change the phone number or email in a safe development/staging environment.
+
+Verify that every relevant location updates automatically.
+
+Restore the original value afterward.
+
+---
+
+## Test 6 — Form
+
+Submit a test enquiry.
+
+Verify:
+
+- validation
+- Worker/API handling
+- spam protection
+- delivery
+- success state
+- no credentials exposed
+
+---
+
+# SECURITY REVIEW
+
+Review:
+
+- exposed environment variables
+- CMS authentication
+- Cloudinary configuration
+- form endpoint
+- repository secrets
+- dependencies
+- client-side secrets
+- Cloudflare configuration
+- CORS where applicable
+
+No credentials should be present in browser source.
+
+---
+
+# DEPENDENCY DISCIPLINE
+
+Do not add huge frameworks or libraries for trivial tasks.
+
+Avoid unnecessary dependencies.
+
+Every dependency must have a clear purpose.
+
+---
+
+# DEPENDENCY SECURITY
+
+Check for:
+
+- known vulnerabilities
+- abandoned packages
+- unnecessary transitive risk
+- outdated packages where upgrades are safe
+
+Do not automatically upgrade major versions if doing so introduces instability without reason.
+
+---
+
+# README
+
+Create a serious README.
+
+Include:
+
+## Development
+
+npm install
+npm run dev
+
+## Production build
+
+npm run build
+
+## CMS
+
+Explain how to access the CMS.
+
+## Environment variables
+
+Explain every variable.
+
+## Deployment
+
+Explain automatic Cloudflare Workers deployment.
+
+## Content editing
+
+Explain:
+
+- adding a project
+- editing a project
+- uploading images
+- editing pages
+- adding sections
+- changing company information
+
+## Troubleshooting
+
+Include common issues.
+
+---
+
+# CLIENT GUIDE
+
+Create a separate:
+
+CLIENT-GUIDE.md
+
+Write this for a non-technical Czech-speaking client.
+
+Explain:
+
+## Jak přidat novou realizaci
+
+1. Přihlaste se.
+2. Otevřete Realizace.
+3. Klikněte Přidat realizaci.
+4. Vyplňte informace.
+5. Nahrajte fotografie.
+6. Klikněte Publikovat.
+
+Also explain:
+
+- editing text
+- adding photos
+- changing phone number
+- changing email
+- selecting homepage projects
+- reordering sections
+- changing SEO title/description
+- previewing changes
+- publishing changes
+
+Do not mention unnecessary developer concepts.
+
+---
+
+# DEVELOPER DOCUMENTATION
+
+Also create:
+
+ARCHITECTURE.md
+
+Explain:
+
+- Astro architecture
+- Tina schemas
+- Cloudinary integration
+- content model
+- components
+- Cloudflare Workers deployment
+- authentication
+- Git flow
+- form/API architecture
+- environment variables
+- production domain setup
+
+This is for future developers.
+
+---
+
+# OPERATIONS DOCUMENTATION
+
+Create:
+
+OPERATIONS.md
+
+Include:
+
+- how deployments work
+- how to roll back
+- what happens if Tina is unavailable
+- what happens if Cloudinary is unavailable
+- how to rotate secrets
+- how to update dependencies
+- how to troubleshoot failed builds
+- how to restore a previous content version
+- how to transfer the project to a new owner/account
+
+---
+
+# DOMAIN MIGRATION
+
+Prepare for moving from the GitHub Pages URL to the client's real production domain.
+
+Target architecture should support:
+
+zavadystrech.cz
+www.zavadystrech.cz
+
+Choose one canonical host and redirect the other.
+
+Update:
+
+- canonical URLs
+- sitemap
+- OG URLs
+- structured data
+- form origins
+- CMS allowed origins
+- Cloudinary configuration if needed
+- analytics
+
+Document DNS records required.
+
+---
+
+# REDIRECTS
+
+If the old GitHub Pages website remains public during migration:
+
+Document how to:
+
+- prevent duplicate-content problems
+- redirect users if possible
+- place a canonical pointer during transition
+- retire the old URL safely
+
+Do not accidentally leave two independently indexed production versions forever.
+
+---
+
+# STAGING
+
+Provide a safe staging/preview deployment strategy if practical.
+
+Examples:
+
+- Cloudflare preview deployments
+- separate staging hostname
+- branch preview
+
+The client should not accidentally publish experimental work directly to the main production domain during development.
+
+---
+
+# BACKUPS / RECOVERY
+
+Git history should provide recovery for structured content.
+
+Cloudinary media should have a sensible media-management strategy.
+
+Document how to recover:
+
+- deleted content
+- broken project entries
+- bad deployments
+- accidentally changed settings
+
+---
+
+# FUTURE REUSABILITY
+
+Architect the system so the CMS infrastructure can later be reused for other construction-company websites.
+
+However:
+
+Do not turn this client's visual design into a generic template.
+
+Separate:
+
+## reusable platform logic
+
+from
+
+## client-specific visual design
+
+Reusable:
+
+- CMS models
+- projects system
+- image architecture
+- SEO system
+- form infrastructure
+- settings system
+- Cloudflare deployment pattern
+
+Client-specific:
+
+- CSS
+- composition
+- typography
+- design identity
+- page layout
+- branding
+
+---
+
+# DO NOT DO THESE
+
+Do NOT:
+
+- rebuild it in WordPress
+- replace it with Webflow
+- introduce Elementor
+- use Firebase just to store page content
+- make every field a database field unnecessarily
+- redesign the site
+- replace current typography casually
+- remove animations without reason
+- hardcode editable content
+- store secrets in Git
+- allow unrestricted HTML editing
+- create fake testimonials
+- create fake company statistics
+- invent certificates
+- invent awards
+- invent project details
+- make a generic dashboard unrelated to Tina
+- build a completely custom CMS when Tina already solves the problem
+- use GitHub Pages as final production hosting
+- create a VPS just because it is familiar
+- expose Cloudflare or Cloudinary secrets
+- turn the website into a generic template
+
+---
+
+# DECISION AUTHORITY
+
+You may make technical decisions yourself.
+
+Do not repeatedly ask for approval over minor implementation decisions.
+
+When there are multiple valid approaches:
+
+Choose the option that maximizes:
+
+1. maintainability
+2. client usability
+3. frontend performance
+4. design preservation
+5. security
+6. low operating cost
+7. future reuse
+8. simple production operations
+
+Document significant decisions.
+
+---
+
+# ORDER OF IMPLEMENTATION
+
+Use approximately this order:
+
+## Phase 1
+Audit existing website.
+
+## Phase 2
+Create Astro foundation.
+
+## Phase 3
+Reproduce existing visual design.
+
+## Phase 4
+Componentize frontend.
+
+## Phase 5
+Create Tina content schemas.
+
+## Phase 6
+Move existing content into structured content.
+
+## Phase 7
+Build project system.
+
+## Phase 8
+Build page-block system.
+
+## Phase 9
+Integrate Cloudinary.
+
+## Phase 10
+Build/secure forms and Cloudflare Worker endpoint.
+
+## Phase 11
+Implement SEO.
+
+## Phase 12
+Configure Tina CMS authentication/editing.
+
+## Phase 13
+Configure Cloudflare Workers production deployment.
+
+## Phase 14
+Configure custom domain/staging.
+
+## Phase 15
+Test client editing workflows.
+
+## Phase 16
+Run responsive and visual regression QA.
+
+## Phase 17
+Run security/performance QA.
+
+## Phase 18
+Write documentation.
+
+## Phase 19
+Deploy production-ready version.
+
+---
+
+# DEFINITION OF DONE
+
+The project is NOT finished merely because the Astro build succeeds.
+
+It is complete only when:
+
+- existing visual quality is preserved
+- all existing important pages work
+- projects are CMS-managed
+- new projects can be added without code
+- pages can be edited without code
+- predefined sections can be added/reordered
+- images can be uploaded
+- contact details are globally manageable
+- homepage projects can be selected
+- SEO can be edited
+- the site builds successfully
+- Cloudflare Workers production deployment works
+- custom-domain configuration is documented
+- secrets are secure
+- responsive behavior works
+- forms work
+- CMS authentication works
+- client documentation exists
+- developer documentation exists
+- operations documentation exists
+- no fake business information was introduced
+- GitHub Pages is no longer the production host
+- GitHub remains usable for source/version history
+- real project photography can be added without developer work
+
+---
+
+# COMMERCIAL QUALITY BAR
+
+This should not feel like a developer demo.
+
+The finished product should behave like a professionally commissioned custom website in approximately the 60,000–80,000 CZK commercial class.
+
+That means:
+
+- polished frontend
+- clean architecture
+- client-safe editing
+- professional publishing workflow
+- production hosting
+- real forms
+- media management
+- SEO foundation
+- good security
+- documentation
+- maintainability
+
+Do not cut corners that make the finished website feel like a static GitHub prototype with a CMS bolted onto it.
+
+---
+
+# FINAL DELIVERABLE REPORT
+
+When finished, give me a concise report containing:
+
+## Architecture
+What was implemented.
+
+## CMS
+What the client can edit.
+
+## Projects
+How project creation works.
+
+## Media
+How image storage works.
+
+## Deployment
+How publishing works.
+
+## Cloudflare
+How Workers, domains, secrets, and deployment are configured.
+
+## Forms
+How enquiries are processed.
+
+## Security
+What protections were added.
+
+## SEO
+What was implemented.
+
+## Performance
+Relevant build/Lighthouse/Core Web Vitals findings.
+
+## Files Changed
+Important files/directories.
+
+## Environment Variables
+Everything I need to configure.
+
+## Remaining Manual Actions
+Only things that genuinely require me, such as:
+
+- creating/configuring Tina account
+- adding GitHub access
+- adding Cloudinary credentials
+- creating/configuring Cloudflare account/project
+- configuring Cloudflare secrets
+- configuring DNS
+- connecting production domain
+- configuring transactional email/form delivery
+- replacing placeholder/contextual imagery with real company photos
+- changing the business email to the client's domain email
+
+## Testing
+Show actual build/test results.
+
+## Known Limitations
+State them clearly.
+
+---
+
+# FINAL PRINCIPLE
+
+This website should behave like a professionally commissioned, production-grade company website — not like a static GitHub Pages demo.
+
+The frontend should continue looking handcrafted.
+
+The backend editing experience should feel simple enough that the roofing-company owner can maintain it without understanding code.
+
+GitHub should remain invisible to the customer during normal use.
+
+Cloudflare Workers should host the production website.
+
+Cloudinary should manage production photography.
+
+TinaCMS should provide safe structured editing.
+
+Astro should preserve performance and frontend quality.
+
+Do not sacrifice design quality to gain editability.
+
+Do not sacrifice maintainability to gain short-term speed.
+
+Do not invent claims in order to make the site sound more impressive.
+
+Build it so it can genuinely be handed to a paying client.

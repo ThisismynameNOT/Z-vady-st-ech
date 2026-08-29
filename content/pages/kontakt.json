@@ -1,0 +1,22 @@
+{
+  "title": "Kontakt",
+  "slug": "kontakt",
+  "seoTitle": "Kontakt a poptávka | Závady střech Praha",
+  "seoDescription": "Kontaktujte Závady střech Praha. Telefon +420 732 282 409.",
+  "canonicalUrl": "/kontakt/",
+  "ogImage": "/assets/images/roof-work.jpg",
+  "noIndex": false,
+  "sections": [
+    {
+      "_template": "subHero",
+      "eyebrow": "Kontakt",
+      "heading": "Řešíte střechu? Začněme problémem.",
+      "description": "Pokud právě zatéká, je poškozená krytina nebo potřebujete naplánovat opravu či údržbu, zavolejte. Pro neakutní poptávku použijte formulář.",
+      "backgroundImage": "/assets/images/roof-work.jpg"
+    },
+    {
+      "_template": "contactForm",
+      "heading": "Telefon je nejrychlejší cesta, když potřebujete popsat situaci."
+    }
+  ]
+}

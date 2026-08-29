@@ -1,0 +1,21 @@
+{
+  "name": "Práce ve výšce",
+  "slug": "prace-ve-vysce",
+  "shortDescription": "Lanový přístup a práce v obtížně přístupných místech.",
+  "description": "Práce ve výšce tam, kde je lanový přístup vhodný pro konkrétní zásah.",
+  "items": [
+    "montáž a opravy prvků v obtížně přístupných místech",
+    "lanový přístup tam, kde je vhodný pro danou práci",
+    "úchytné systémy a ochranné prvky proti ptactvu",
+    "dokumentace stavu podle rozsahu zakázky"
+  ],
+  "icon": "",
+  "heroImage": "/assets/images/roof-work.jpg",
+  "relatedProjects": [
+    "hybernska-2-997"
+  ],
+  "featured": true,
+  "order": 4,
+  "seoTitle": "Práce ve výšce Praha",
+  "seoDescription": "Lanový přístup a výškové práce na střechách v Praze."
+}

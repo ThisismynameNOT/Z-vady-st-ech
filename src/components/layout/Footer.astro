@@ -1,0 +1,6 @@
+---
+import { getCompany, getSite } from '../../lib/content';
+import { telHref } from '../../lib/format';
+const company=getCompany(), site=getSite();
+---
+<footer class="footer"><div class="wrap"><div class="footer-grid"><div><h4>{company.legalName}</h4><div class="small">Opravy a údržba střech · {company.serviceArea}</div><div class="small">IČO {company.ico}</div></div><div><h4>Navigace</h4>{site.footerNavigation.map((item:any)=><a href={item.href}>{item.label}</a>)}</div><div><h4>Kontakt</h4><a href={telHref(company.phone)}>{company.phone}</a><a href={`mailto:${company.email}`}>{company.email}</a><a href="/ochrana-osobnich-udaju/">Ochrana osobních údajů</a></div></div><div class="legal">{company.address} · {company.footerText}</div></div></footer><div class="mobile-cta"><a href={telHref(company.phone)}>Zavolat</a><a href="/kontakt/">Poptat opravu</a></div>

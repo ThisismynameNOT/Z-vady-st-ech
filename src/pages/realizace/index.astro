@@ -1,0 +1,4 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro'; import PageSections from '../../components/sections/PageSections.astro'; import { getPage } from '../../lib/content'; const page=getPage('realizace');
+---
+<BaseLayout title={page.seoTitle||page.title} description={page.seoDescription||''} canonicalUrl={page.canonicalUrl} ogImage={page.ogImage} noIndex={page.noIndex}><PageSections sections={page.sections} /></BaseLayout>

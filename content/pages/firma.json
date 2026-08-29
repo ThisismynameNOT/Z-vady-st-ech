@@ -1,0 +1,36 @@
+{
+  "title": "Firma",
+  "slug": "firma",
+  "seoTitle": "Firma | Závady střech Praha s.r.o.",
+  "seoDescription": "O společnosti Závady střech Praha s.r.o., IČO 08645191.",
+  "canonicalUrl": "/firma/",
+  "ogImage": "/assets/images/hero-prague.jpg",
+  "noIndex": false,
+  "sections": [
+    {
+      "_template": "subHero",
+      "eyebrow": "Firma",
+      "heading": "Řemeslo stojí na konkrétní práci.",
+      "description": "Pražská společnost pro opravy, údržbu a detailní práce na střechách.",
+      "backgroundImage": "/assets/images/hero-prague.jpg"
+    },
+    {
+      "_template": "companyStory",
+      "eyebrow": "Závady střech Praha s.r.o.",
+      "heading": "Firma od roku 2019. Práce dohledatelná veřejně.",
+      "body": "Společnost Závady střech Praha s.r.o. vznikla v roce 2019. Ve veřejných zakázkách se objevuje u oprav, údržby, střešních detailů a prací na objektech v Praze včetně Národního muzea, Pražské tržnice a Gymnázia prof. Jana Patočky.",
+      "image": "/assets/images/roof-detail.jpg",
+      "imageAlt": "Ilustrační detail střešní konstrukce",
+      "imageCaption": "Ilustrační detail střechy. Vlastní fotografie firmy nebo týmu zde má přednost, jakmile bude k dispozici."
+    },
+    {
+      "_template": "contactCta",
+      "eyebrow": "Kontakt",
+      "heading": "Potřebujete probrat konkrétní střechu?",
+      "primaryLabel": "Zavolat",
+      "primaryUrl": "tel:+420732282409",
+      "secondaryLabel": "Poptat opravu",
+      "secondaryUrl": "/kontakt/"
+    }
+  ]
+}
