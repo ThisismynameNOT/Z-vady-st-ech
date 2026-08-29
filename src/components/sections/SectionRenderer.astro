@@ -1,6 +1,6 @@
 ---
 import { getCompany, getProjects, getServices, getReferences } from '../../lib/content';
-import { money, safeHref, telHref } from '../../lib/format';
+import { money, safeHref } from '../../lib/format';
 import ContactForm from './ContactForm.astro';
 const { section }=Astro.props; const company=getCompany(); const projects=getProjects(); const services=getServices(); const references=getReferences(); const t=section._template;
 const lines=(s:string='')=>s.split('|');
