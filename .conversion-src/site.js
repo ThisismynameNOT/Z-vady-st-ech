@@ -1,0 +1,23 @@
+
+(()=>{
+ const $=(s,e=document)=>e.querySelector(s), $$=(s,e=document)=>[...e.querySelectorAll(s)];
+ const nav=$('#nav'), progress=$('#progress');
+ const onScroll=()=>{if(nav)nav.classList.toggle('scrolled',scrollY>26);if(progress){const max=document.documentElement.scrollHeight-innerHeight;progress.style.width=(max?scrollY/max*100:0)+'%'}};
+ addEventListener('scroll',onScroll,{passive:true});onScroll();
+ const obs=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('visible');obs.unobserve(e.target)}}),{threshold:.07});$$('.reveal').forEach(el=>obs.observe(el));
+ const drawer=$('#drawer'),back=$('#drawerBackdrop');
+ function setDrawer(open){if(!drawer||!back)return;drawer.classList.toggle('open',open);back.classList.toggle('open',open);document.body.classList.toggle('locked',open);drawer.setAttribute('aria-hidden',open?'false':'true');if(open){const f=drawer.querySelector('button,a');f&&f.focus()}}
+ $$('[data-menu-open]').forEach(b=>b.addEventListener('click',()=>setDrawer(true)));$$('[data-menu-close]').forEach(b=>b.addEventListener('click',()=>setDrawer(false)));back&&back.addEventListener('click',()=>setDrawer(false));addEventListener('keydown',e=>{if(e.key==='Escape')setDrawer(false)});
+ // Contact form only loads on kontakt.html.
+ const form=$('#roofForm'); if(!form)return;
+ const WIX_CLIENT_ID='ee327944-8098-4f6f-9000-dd8964baa26b';
+ const WIX_FORM_ID='980c885d-d4c7-4426-8ae4-0c5f51755390';
+ const state={building:'',problem:''};let step=0;const steps=$$('.form-step');
+ const status=$('#formStatus'),next=$('#nextStep'),prev=$('#prevStep');
+ function setStatus(msg,type=''){status.textContent=msg;status.className='form-status'+(type?' '+type:'')}
+ function render(){steps.forEach((el,i)=>el.classList.toggle('active',i===step));$('#stepIndicator').textContent=`Krok ${step+1} / 3`;$('#stepProgress').style.width=((step+1)/3*100)+'%';prev.style.visibility=step===0?'hidden':'visible';next.textContent=step===2?'Odeslat poptávku ✓':'Pokračovat →';const sb=$('#sumBuilding'),sp=$('#sumProblem');if(sb)sb.textContent=state.building||'—';if(sp)sp.textContent=state.problem||'—'}
+ $$('.choices').forEach(group=>$$('.choice',group).forEach(choice=>choice.addEventListener('click',()=>{$$('.choice',group).forEach(c=>c.classList.remove('selected'));choice.classList.add('selected');state[group.dataset.key]=choice.dataset.value;render()})));
+ async function token(){const r=await fetch('https://www.wixapis.com/oauth2/token',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({clientId:WIX_CLIENT_ID,grantType:'anonymous'})});if(!r.ok)throw new Error('AUTH');const d=await r.json();if(!d.access_token)throw new Error('TOKEN');return d.access_token}
+ async function submit(){const name=$('#name').value.trim(),phone=$('#phone').value.trim(),email=$('#email').value.trim(),when=$('#when').value,note=$('#note').value.trim(),privacy=$('#privacyAck').checked;if(!name||!phone||!email){setStatus('Doplňte prosím jméno, telefon a e-mail.','error');return}if(!$('#email').checkValidity()){setStatus('Zkontrolujte prosím e-mailovou adresu.','error');return}if(!privacy){setStatus('Potvrďte prosím seznámení s informacemi o zpracování osobních údajů.','error');return}next.disabled=true;setStatus('Odesílám poptávku…');try{const access=await token();const detail=[state.problem,when?`Preferovaný termín: ${when}`:'',note?`Poznámka: ${note}`:''].filter(Boolean).join(' | ');const r=await fetch('https://www.wixapis.com/form-submission-service/v4/submissions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':access},body:JSON.stringify({submission:{formId:WIX_FORM_ID,submissions:{first_name_roof:name,email_roof:email,phone_roof:phone,object_type_roof:state.building,problem_roof:detail}}})});if(!r.ok)throw new Error(await r.text());setStatus('Děkujeme. Poptávka byla odeslána.','success');next.textContent='Odesláno ✓';form.querySelectorAll('input[type="text"],input[type="email"],input[type="tel"],textarea').forEach(x=>x.value='');$('#privacyAck').checked=false}catch(err){console.error(err);setStatus('Odeslání se nepodařilo. Zavolejte prosím na +420 732 282 409 nebo napište na pehlo@seznam.cz.','error');next.disabled=false}}
+ prev.addEventListener('click',()=>{if(step>0){step--;setStatus('');render()}});next.addEventListener('click',async()=>{if(step===0&&!state.building){setStatus('Vyberte prosím typ objektu.','error');return}if(step===1&&!state.problem){setStatus('Vyberte prosím hlavní problém.','error');return}if(step<2){step++;setStatus('');render();return}await submit()});render();
+})();
