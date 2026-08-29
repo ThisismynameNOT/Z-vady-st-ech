@@ -21,6 +21,12 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Use project Node version
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
       - name: Reconstruct and verify migration source
         shell: bash
         run: |
@@ -85,7 +91,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          rm -f package-lock.json
           npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+          npm ci --ignore-scripts --no-audit --no-fund
           test -s package-lock.json
 
       - name: Commit reconstructed application
@@ -99,5 +107,5 @@ jobs:
             echo 'Application source already applied.'
             exit 0
           fi
-          git commit -m 'feat: migrate approved site to Astro Tina Cloudflare CMS [skip ci]'
+          git commit -m 'chore: normalize Astro CMS dependency lock [skip ci]'
           git push origin HEAD:feat/astro-tina-cloudflare-migration
