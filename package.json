@@ -29,6 +29,7 @@
   "devDependencies": {
     "@astrojs/check": "0.9.10",
     "@tinacms/cli": "2.6.1",
+    "prettier": "3.9.6",
     "react": "19.2.7",
     "react-dom": "19.2.7",
     "typescript": "5.9.2",
