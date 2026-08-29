@@ -1,0 +1,48 @@
+name: One-time exact copy from Claude
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/copy-from-claude.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  copy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout target repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Checkout pinned Claude source snapshot
+        uses: actions/checkout@v4
+        with:
+          repository: ThisismynameNOT/Claude
+          ref: f5bc8cb53c04583d19e694cffedea46d545b4bac
+          path: _source
+          fetch-depth: 1
+
+      - name: Replace target contents with source snapshot
+        shell: bash
+        run: |
+          set -euo pipefail
+          find . -mindepth 1 -maxdepth 1 ! -name '.git' ! -name '_source' -exec rm -rf {} +
+          rsync -a --delete --exclude='.git' _source/ ./
+          rm -rf _source
+
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+
+          if git diff --cached --quiet; then
+            echo 'Target already matches the source snapshot.'
+            exit 0
+          fi
+
+          git commit -m 'Copy Claude repository snapshot [skip ci]'
+          git push origin HEAD:main
