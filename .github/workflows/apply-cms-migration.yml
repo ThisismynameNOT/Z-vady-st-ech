@@ -5,6 +5,7 @@ on:
     branches: [feat/astro-tina-cloudflare-migration]
     paths:
       - '.migration/READY'
+      - '.github/workflows/apply-cms-migration.yml'
   workflow_dispatch:
 
 permissions:
@@ -24,7 +25,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          cat .migration/cms-source-{00..09}.b64 | tr -d '\n\r' | base64 --decode > /tmp/roofing-cms-source.tar.gz
+          {
+            head -c 7000 .migration/cms-source-00.b64
+            cat .migration/cms-source-{01..09}.b64
+          } | tr -d '\n\r' | base64 --decode > /tmp/roofing-cms-source.tar.gz
           echo 'a11f98e8f1e639504bc448b92158674cc10a0eb55aa326d16dcb1779b947b93e  /tmp/roofing-cms-source.tar.gz' | sha256sum -c -
           rm -rf /tmp/roofing-cms-source
           mkdir -p /tmp/roofing-cms-source
