@@ -1,0 +1,233 @@
+name: Deploy finished client version
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.production/**'
+      - '.github/workflows/deploy-production.yml'
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: heritage-pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Restore and verify production files
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p _site/assets/fonts
+          cat .production/index-{01..03}.b64 | tr -d '\n\r' | base64 --decode | gzip -dc > _site/index.html
+          tr -d '\n\r' < .production/ochrana-osobnich-udaju.html.b64 | base64 --decode | gzip -dc > _site/ochrana-osobnich-udaju.html
+          tr -d '\n\r' < .production/robots.txt.b64 | base64 --decode | gzip -dc > _site/robots.txt
+          tr -d '\n\r' < .production/favicon.svg.b64 | base64 --decode | gzip -dc > _site/favicon.svg
+          echo '988979a7d2f14b46e4e4f097307a27f6d6bf39230750246af28a8afd19ab2821  _site/index.html' | sha256sum -c -
+          echo '699a169b365a8b998853f248872712ecd9f2b959ab344081ef2a9b545ff85558  _site/ochrana-osobnich-udaju.html' | sha256sum -c -
+          echo '331ea9090db0c9f6f597bd9840fd5b171830f6e0b3ba1cb24dfa91f0c95aedc1  _site/robots.txt' | sha256sum -c -
+          echo '86a57f320dbdcf2df592e031e40e159da9141e52bcbd48e304b1a80eb463db57  _site/favicon.svg' | sha256sum -c -
+
+      - name: Install self-hosted typefaces
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install --no-save --ignore-scripts @fontsource/cormorant-garamond@latest @fontsource/inter@latest
+          copy_font() {
+            local pkg="$1" pattern="$2" target="$3"
+            local src
+            src="$(find "node_modules/@fontsource/$pkg/files" -type f -name "$pattern" -print -quit)"
+            test -n "$src"
+            cp "$src" "_site/assets/fonts/$target"
+          }
+          copy_font cormorant-garamond '*latin-400-normal.woff2' cormorant-garamond-400.woff2
+          copy_font cormorant-garamond '*latin-500-normal.woff2' cormorant-garamond-500.woff2
+          copy_font cormorant-garamond '*latin-600-normal.woff2' cormorant-garamond-600.woff2
+          copy_font cormorant-garamond '*latin-400-italic.woff2' cormorant-garamond-400-italic.woff2
+          copy_font inter '*latin-400-normal.woff2' inter-400.woff2
+          copy_font inter '*latin-500-normal.woff2' inter-500.woff2
+          copy_font inter '*latin-600-normal.woff2' inter-600.woff2
+
+      - name: Download licensed production imagery
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p _site/assets
+          curl --fail --location --retry 3 'https://images.unsplash.com/photo-1768577087440-82633c9c7b85?auto=format&fit=crop&fm=jpg&q=88&w=2800' -o _site/assets/hero-prague.jpg
+          curl --fail --location --retry 3 'https://images.unsplash.com/photo-1773432114061-2ae201208630?auto=format&fit=crop&fm=jpg&q=84&w=2400' -o _site/assets/roof-detail.jpg
+          curl --fail --location --retry 3 'https://images.unsplash.com/photo-1726589004565-bedfba94d3a2?auto=format&fit=crop&fm=jpg&q=84&w=2200' -o _site/assets/roof-work.jpg
+          curl --fail --location --retry 3 'https://commons.wikimedia.org/wiki/Special:Redirect/file/Praha%20n%C3%A1rodn%C3%AD%20muzeum%201.jpg?width=2200' -o _site/assets/national-museum.jpg
+          curl --fail --location --retry 3 'https://commons.wikimedia.org/wiki/Special:Redirect/file/Hole%C5%A1ovick%C3%A1%20tr%C5%BEnice%20Cc-zero%2020241022%20153918.jpg?width=2200' -o _site/assets/prague-market.jpg
+          test -s _site/assets/hero-prague.jpg
+          test -s _site/assets/roof-detail.jpg
+          test -s _site/assets/roof-work.jpg
+          test -s _site/assets/national-museum.jpg
+          test -s _site/assets/prague-market.jpg
+
+      - name: Production copy and structure gates
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from html.parser import HTMLParser
+          from pathlib import Path
+
+          source = Path('_site/index.html').read_text(encoding='utf-8')
+
+          class VisibleText(HTMLParser):
+              def __init__(self):
+                  super().__init__()
+                  self.parts = []
+              def handle_data(self, data):
+                  self.parts.append(data)
+
+          parser = VisibleText()
+          parser.feed(source)
+          text = ' '.join(' '.join(parser.parts).split())
+
+          required_phrases = [
+              'Střecha musí obstát v čase.',
+              'Práce na objektech, které Praha zná.',
+              'Dohledatelné zakázky.',
+          ]
+          for phrase in required_phrases:
+              if phrase not in text:
+                  raise SystemExit(f'Missing rendered copy: {phrase}')
+
+          banned_phrases = [
+              'demo',
+              'produkční verze',
+              'soukromý redesign',
+              'heritage luxury concept',
+          ]
+          lower_text = text.lower()
+          for phrase in banned_phrases:
+              if phrase in lower_text:
+                  raise SystemExit(f'Prototype language remains: {phrase}')
+
+          required_markers = [
+              'ee327944-8098-4f6f-9000-dd8964baa26b',
+              '980c885d-d4c7-4426-8ae4-0c5f51755390',
+              'assets/hero-prague.jpg',
+              'assets/roof-detail.jpg',
+          ]
+          for marker in required_markers:
+              if marker not in source:
+                  raise SystemExit(f'Missing production marker: {marker}')
+
+          forbidden_hotlinks = [
+              'images.unsplash.com',
+              'commons.wikimedia.org',
+              'fonts.googleapis.com',
+              'fonts.gstatic.com',
+          ]
+          for host in forbidden_hotlinks:
+              if host in source:
+                  raise SystemExit(f'External asset hotlink remains: {host}')
+          PY
+          grep -q 'noindex,nofollow' _site/index.html
+          grep -q 'Disallow: /' _site/robots.txt
+          touch _site/.nojekyll
+
+      - name: Validate Wix visitor authentication
+        shell: bash
+        run: |
+          set -euo pipefail
+          TOKEN_RESPONSE="$(curl --fail --silent --show-error --location 'https://www.wixapis.com/oauth2/token' \
+            --header 'Content-Type: application/json' \
+            --data '{"clientId":"ee327944-8098-4f6f-9000-dd8964baa26b","grantType":"anonymous"}')"
+          ACCESS_TOKEN="$(printf '%s' "$TOKEN_RESPONSE" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("access_token", ""))')"
+          test -n "$ACCESS_TOKEN"
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Deploy finished client version
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+  smoke:
+    name: Verify public release
+    runs-on: ubuntu-latest
+    needs: deploy
+    steps:
+      - name: Check live Pages output
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE='https://thisismynamenot.github.io/Claude'
+          LIVE='/tmp/live-index.html'
+
+          ready=0
+          for attempt in {1..12}; do
+            if curl --fail --silent --show-error --location \
+              --header 'Cache-Control: no-cache' \
+              "$BASE/?release=${GITHUB_SHA}&attempt=$attempt" -o "$LIVE"; then
+              if grep -q '980c885d-d4c7-4426-8ae4-0c5f51755390' "$LIVE"; then
+                ready=1
+                break
+              fi
+            fi
+            sleep 5
+          done
+          test "$ready" -eq 1
+
+          python3 - <<'PY'
+          from html.parser import HTMLParser
+          from pathlib import Path
+
+          source = Path('/tmp/live-index.html').read_text(encoding='utf-8')
+
+          class VisibleText(HTMLParser):
+              def __init__(self):
+                  super().__init__()
+                  self.parts = []
+              def handle_data(self, data):
+                  self.parts.append(data)
+
+          parser = VisibleText()
+          parser.feed(source)
+          text = ' '.join(' '.join(parser.parts).split())
+          for phrase in (
+              'Střecha musí obstát v čase.',
+              'Práce na objektech, které Praha zná.',
+              'Dohledatelné zakázky.',
+          ):
+              if phrase not in text:
+                  raise SystemExit(f'Live site is missing: {phrase}')
+          PY
+
+          for path in \
+            'favicon.svg' \
+            'ochrana-osobnich-udaju.html' \
+            'assets/hero-prague.jpg' \
+            'assets/roof-detail.jpg' \
+            'assets/roof-work.jpg' \
+            'assets/national-museum.jpg' \
+            'assets/prague-market.jpg' \
+            'assets/fonts/inter-400.woff2' \
+            'assets/fonts/cormorant-garamond-400.woff2'; do
+            curl --fail --silent --show-error --location --output /dev/null "$BASE/$path"
+          done
