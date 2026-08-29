@@ -1,0 +1,56 @@
+name: Deploy Heritage Luxury demo
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.deploy/heritage-*.b64'
+      - '.github/workflows/deploy-heritage-pages.yml'
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: heritage-pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Reconstruct exact HTML
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p _site
+          cat .deploy/heritage-{01..10}.b64 | tr -d '\n\r' | base64 --decode > _site/index.html
+          echo 'acc581f6fb0d0919965be7dda64c85377a82cb202003eb48a938c04d15789e95  _site/index.html' | sha256sum -c -
+          test "$(wc -c < _site/index.html)" -eq 44054
+          touch _site/.nojekyll
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
