@@ -1,0 +1,32 @@
+name: CMS Platform CI
+
+on:
+  push:
+    branches: [main, feat/astro-tina-cloudflare-migration]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm test
+      - run: npm run audit
+      - run: npm run typecheck
+      - run: npm run build:local
+        env:
+          SITE_URL: https://staging.zavadystrech.cz
+      - uses: actions/upload-artifact@v4
+        with:
+          name: astro-dist
+          path: dist
+          if-no-files-found: error
