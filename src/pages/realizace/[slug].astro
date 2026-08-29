@@ -1,4 +1,85 @@
 ---
-import BaseLayout from '../../layouts/BaseLayout.astro'; import { getProject, getCompany } from '../../lib/content'; import { money } from '../../lib/format'; const p=getProject(Astro.params.slug||''); if(!p) return Astro.redirect('/404/'); const company=getCompany();
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { getProject, getCompany } from '../../lib/content';
+import { money } from '../../lib/format';
+
+const project = getProject(Astro.params.slug || '');
+if (!project) return Astro.redirect('/404/');
+
+const company = getCompany();
+const gallery = project.gallery ?? [];
+const beforeImages = project.beforeImages ?? [];
+const afterImages = project.afterImages ?? [];
+const registryLinks = project.registryLinks ?? [];
+const beforeImage = beforeImages[0];
+const afterImage = afterImages[0];
 ---
-<BaseLayout title={p.seoTitle||`${p.title} | ${company.companyName}`} description={p.seoDescription||p.shortDescription||''} canonicalUrl={`/realizace/${p.slug}/`} ogImage={p.heroImage} schemaType="Article"><section class="subhero has-image"><div class="bg"><img src={p.heroImage} alt="" fetchpriority="high" /></div><div class="wrap"><div class="breadcrumbs"><a href="/">Domů</a> / <a href="/realizace/">Realizace</a> / {p.title}</div><div class="kicker" style="margin-top:28px;color:var(--brass2)">Realizace · {p.year}</div><h1>{p.title}</h1><p>{p.shortDescription}</p></div></section><article class="case"><div class="wrap case-grid"><div class="case-media"><img src={p.heroImage} alt={p.imageAlt||p.title} />{p.imageCaption&&<div class="caption">{p.imageCaption}</div>}</div><div class="case-copy"><div class="case-no">{p.location}</div><h2>Rozsah práce</h2><p class="scope">{p.fullDescription}</p><div class="fact-grid"><div class="fact"><b>{p.year}</b><span>rok</span></div>{p.contractValue&&<div class="fact"><b>{money(p.contractValue,p.currency)}</b><span>bez DPH</span></div>}</div>{p.registryLinks?.map((r:any)=><a class="btn btn-dark" href={r.url} target="_blank" rel="noopener">{r.label} ↗</a>)}</div></div>{p.gallery?.length>0&&<div class="project-page-gallery"><h2 class="h2">Fotografie</h2><div class="gallery-grid">{p.gallery.map((img:any)=><figure><img src={img.src} alt={img.alt||''} loading="lazy" />{img.caption&&<figcaption class="small muted">{img.caption}</figcaption>}</figure>)}</div></div>}{p.beforeImages?.length>0&&p.afterImages?.length>0&&<div class="project-page-gallery"><h2 class="h2">Před / po</h2><div class="before-after"><img src={p.beforeImages[0].src} alt={p.beforeImages[0].alt||'Před opravou'} /><img src={p.afterImages[0].src} alt={p.afterImages[0].alt||'Po opravě'} /></div></div>}</article><section class="final-cta"><div class="wrap final-grid"><div><div class="kicker" style="color:var(--brass2)">Kontakt</div><h2>Máte podobný problém?</h2></div><div class="final-contact"><a class="btn btn-primary" href="/kontakt/">Poptat opravu</a></div></div></section></BaseLayout>
+<BaseLayout
+  title={project.seoTitle || `${project.title} | ${company.companyName}`}
+  description={project.seoDescription || project.shortDescription || ''}
+  canonicalUrl={`/realizace/${project.slug}/`}
+  ogImage={project.heroImage}
+  schemaType="Article"
+>
+  <section class="subhero has-image">
+    <div class="bg"><img src={project.heroImage} alt="" fetchpriority="high" /></div>
+    <div class="wrap">
+      <div class="breadcrumbs"><a href="/">Domů</a> / <a href="/realizace/">Realizace</a> / {project.title}</div>
+      <div class="kicker" style="margin-top:28px;color:var(--brass2)">Realizace · {project.year}</div>
+      <h1>{project.title}</h1>
+      <p>{project.shortDescription}</p>
+    </div>
+  </section>
+
+  <article class="case">
+    <div class="wrap case-grid">
+      <div class="case-media">
+        <img src={project.heroImage} alt={project.imageAlt || project.title} />
+        {project.imageCaption && <div class="caption">{project.imageCaption}</div>}
+      </div>
+      <div class="case-copy">
+        <div class="case-no">{project.location}</div>
+        <h2>Rozsah práce</h2>
+        <p class="scope">{project.fullDescription}</p>
+        <div class="fact-grid">
+          <div class="fact"><b>{project.year}</b><span>rok</span></div>
+          {project.contractValue && <div class="fact"><b>{money(project.contractValue, project.currency)}</b><span>bez DPH</span></div>}
+        </div>
+        {registryLinks.map((record: any) => (
+          <a class="btn btn-dark" href={record.url} target="_blank" rel="noopener">{record.label} ↗</a>
+        ))}
+      </div>
+    </div>
+
+    {gallery.length > 0 && (
+      <div class="project-page-gallery">
+        <h2 class="h2">Fotografie</h2>
+        <div class="gallery-grid">
+          {gallery.map((image: any) => (
+            <figure>
+              <img src={image.src} alt={image.alt || ''} loading="lazy" />
+              {image.caption && <figcaption class="small muted">{image.caption}</figcaption>}
+            </figure>
+          ))}
+        </div>
+      </div>
+    )}
+
+    {beforeImage && afterImage && (
+      <div class="project-page-gallery">
+        <h2 class="h2">Před / po</h2>
+        <div class="before-after">
+          <img src={beforeImage.src} alt={beforeImage.alt || 'Před opravou'} />
+          <img src={afterImage.src} alt={afterImage.alt || 'Po opravě'} />
+        </div>
+      </div>
+    )}
+  </article>
+
+  <section class="final-cta">
+    <div class="wrap final-grid">
+      <div><div class="kicker" style="color:var(--brass2)">Kontakt</div><h2>Máte podobný problém?</h2></div>
+      <div class="final-contact"><a class="btn btn-primary" href="/kontakt/">Poptat opravu</a></div>
+    </div>
+  </section>
+</BaseLayout>
