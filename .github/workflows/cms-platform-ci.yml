@@ -5,12 +5,12 @@ on:
     branches: [main, feat/astro-tina-cloudflare-migration]
   pull_request:
 
+concurrency:
+  group: cms-platform-ci-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
-
-concurrency:
-  group: cms-platform-${{ github.ref }}
-  cancel-in-progress: true
 
 jobs:
   validate:
@@ -24,6 +24,7 @@ jobs:
           cache: npm
           cache-dependency-path: package-lock.json
       - run: npm ci --no-audit --no-fund
+      - run: npm audit --omit=dev --audit-level=high
       - run: npm test
       - run: npm run audit
       - run: npm run typecheck
