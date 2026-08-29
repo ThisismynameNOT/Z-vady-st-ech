@@ -31,9 +31,15 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          find . -mindepth 1 -maxdepth 1 ! -name '.git' ! -name '_source' -exec rm -rf {} +
-          rsync -a --delete --exclude='.git' _source/ ./
-          rm -rf _source
+
+          SOURCE_COPY="$RUNNER_TEMP/claude-source"
+          rm -rf "$SOURCE_COPY"
+          mkdir -p "$SOURCE_COPY"
+          cp -a _source/. "$SOURCE_COPY/"
+          rm -rf "$SOURCE_COPY/.git" _source
+
+          find . -mindepth 1 -maxdepth 1 ! -name '.git' -exec rm -rf {} +
+          rsync -a --delete --exclude='.git' "$SOURCE_COPY/" ./
 
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
