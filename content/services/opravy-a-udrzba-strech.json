@@ -1,0 +1,23 @@
+{
+  "name": "Opravy a údržba střech",
+  "slug": "opravy-a-udrzba-strech",
+  "shortDescription": "Lokální opravy, zatékání, poruchy a údržba střešního pláště.",
+  "description": "Opravy a údržba střech podle skutečného stavu objektu.",
+  "items": [
+    "lokální opravy poškozených částí",
+    "řešení zatékání a poruch",
+    "údržba střešního pláště a detailů",
+    "havarijní opravy doložené veřejnými zakázkami"
+  ],
+  "icon": "",
+  "heroImage": "/assets/images/roof-work.jpg",
+  "relatedProjects": [
+    "narodni-muzeum",
+    "prazska-trznice-hala-25",
+    "gymnazium-jana-patocky"
+  ],
+  "featured": true,
+  "order": 1,
+  "seoTitle": "Opravy a údržba střech Praha",
+  "seoDescription": "Opravy, zatékání a údržba střech v Praze."
+}

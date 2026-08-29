@@ -1,0 +1,5 @@
+import { workerEnv } from './server-env'; import { isUserAuthorized } from '@tinacms/auth';
+export async function requireTina(request:Request){const env=workerEnv();const token=request.headers.get('authorization');if(!token||!env.PUBLIC_TINA_CLIENT_ID)return false;const u=await isUserAuthorized({clientID:env.PUBLIC_TINA_CLIENT_ID,token});return Boolean(u?.verified&&u.enabled)}
+const enc=new TextEncoder(); async function sha1Hex(input:string){const hash=await crypto.subtle.digest('SHA-1',enc.encode(input));return [...new Uint8Array(hash)].map(b=>b.toString(16).padStart(2,'0')).join('')}
+export async function signParams(params:Record<string,string|number>,secret:string){const base=Object.keys(params).sort().map(k=>`${k}=${params[k]}`).join('&')+secret;return sha1Hex(base)}
+export function scopedPublicId(raw:string,folder:string){const decoded=decodeURIComponent(raw);if(decoded===folder||decoded.startsWith(folder+'/'))return decoded;throw new Error('Media path outside configured folder')}

@@ -1,0 +1,41 @@
+{
+  "title": "Hybernská 2/997",
+  "slug": "hybernska-2-997",
+  "status": "published",
+  "clientName": "",
+  "buildingName": "Hybernská 2/997",
+  "location": "Praha",
+  "year": 2025,
+  "dateStart": "",
+  "dateCompleted": "",
+  "contractValue": 94150,
+  "currency": "CZK",
+  "shortDescription": "Montáž úchytného systému a ochranných prvků proti ptactvu s využitím lanového přístupu.",
+  "fullDescription": "Montáž úchytného systému a ochranných prvků proti ptactvu s využitím lanového přístupu.",
+  "services": [
+    "prace-ve-vysce"
+  ],
+  "projectType": "veřejná zakázka",
+  "buildingType": "objekt v centru Prahy",
+  "heroImage": "/assets/images/roof-detail.jpg",
+  "imageAlt": "Ilustrační detail střechy",
+  "imageCaption": "Ilustrační detail střechy; není vydáván za vlastní fotodokumentaci této konkrétní zakázky.",
+  "gallery": [],
+  "beforeImages": [],
+  "afterImages": [],
+  "registryLinks": [
+    {
+      "label": "Registr smluv – detail smlouvy",
+      "url": "https://smlouvy.gov.cz/smlouva/31937668",
+      "source": "Registr smluv"
+    }
+  ],
+  "externalLinks": [],
+  "featured": false,
+  "homepagePriority": 4,
+  "verified": true,
+  "seoTitle": "Hybernská 2/997 | Závady střech Praha",
+  "seoDescription": "Montáž úchytného systému a ochranných prvků proti ptactvu s lanovým přístupem.",
+  "createdAt": "2025-01-29",
+  "updatedAt": "2026-08-29"
+}

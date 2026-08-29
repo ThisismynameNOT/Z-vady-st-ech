@@ -1,0 +1,42 @@
+{
+  "title": "Pražská tržnice · Hala 25",
+  "slug": "prazska-trznice-hala-25",
+  "status": "published",
+  "clientName": "Výstaviště Praha",
+  "buildingName": "Pražská tržnice · Hala 25",
+  "location": "Praha – Holešovice",
+  "year": 2025,
+  "dateStart": "",
+  "dateCompleted": "",
+  "contractValue": 950172,
+  "currency": "CZK",
+  "shortDescription": "Obnova části střešního pláště na Hale 25 pro Výstaviště Praha.",
+  "fullDescription": "Obnova části střešního pláště na Hale 25 pro Výstaviště Praha. Ve veřejném záznamu je dohledatelná původní smluvní hodnota 950 172 Kč bez DPH; pozdější zveřejněná aktualizace uvádí 998 277 Kč bez DPH.",
+  "services": [
+    "opravy-a-udrzba-strech",
+    "pokryvacske-a-tesarske-prace"
+  ],
+  "projectType": "veřejná zakázka",
+  "buildingType": "veřejný / komerční objekt",
+  "heroImage": "/assets/images/prague-market.jpg",
+  "imageAlt": "Pražská tržnice v Holešovicích",
+  "imageCaption": "Fotografie objektu slouží jako kontext reference; není vydávána za vlastní fotodokumentaci zakázky.",
+  "gallery": [],
+  "beforeImages": [],
+  "afterImages": [],
+  "registryLinks": [
+    {
+      "label": "Registr smluv – vyhledání dle IČO",
+      "url": "https://smlouvy.gov.cz/vyhledavani?party_idnum=08645191",
+      "source": "Registr smluv"
+    }
+  ],
+  "externalLinks": [],
+  "featured": true,
+  "homepagePriority": 2,
+  "verified": true,
+  "seoTitle": "Pražská tržnice Hala 25 | Závady střech Praha",
+  "seoDescription": "Obnova části střešního pláště Haly 25 v Pražské tržnici.",
+  "createdAt": "2025-05-13",
+  "updatedAt": "2026-08-29"
+}

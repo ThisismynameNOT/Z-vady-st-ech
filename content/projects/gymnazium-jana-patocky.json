@@ -1,0 +1,41 @@
+{
+  "title": "Gymnázium prof. Jana Patočky",
+  "slug": "gymnazium-jana-patocky",
+  "status": "published",
+  "clientName": "Gymnázium prof. Jana Patočky",
+  "buildingName": "Gymnázium prof. Jana Patočky",
+  "location": "Praha",
+  "year": 2024,
+  "dateStart": "",
+  "dateCompleted": "",
+  "contractValue": 400974.83,
+  "currency": "CZK",
+  "shortDescription": "Havarijní oprava střechy a související údržba.",
+  "fullDescription": "Havarijní oprava střechy a související údržba. Veřejně dohledatelná smlouva GPJP-2024/SML/368/2.",
+  "services": [
+    "opravy-a-udrzba-strech"
+  ],
+  "projectType": "veřejná zakázka",
+  "buildingType": "veřejný objekt",
+  "heroImage": "/assets/images/roof-work.jpg",
+  "imageAlt": "Ilustrační fotografie práce na střeše",
+  "imageCaption": "Ilustrační fotografie práce na střeše; není vydávána za vlastní fotodokumentaci této konkrétní zakázky.",
+  "gallery": [],
+  "beforeImages": [],
+  "afterImages": [],
+  "registryLinks": [
+    {
+      "label": "Registr smluv – detail smlouvy",
+      "url": "https://smlouvy.gov.cz/smlouva/29978720",
+      "source": "Registr smluv"
+    }
+  ],
+  "externalLinks": [],
+  "featured": true,
+  "homepagePriority": 3,
+  "verified": true,
+  "seoTitle": "Gymnázium Jana Patočky | Závady střech Praha",
+  "seoDescription": "Veřejně dohledatelná havarijní oprava střechy Gymnázia prof. Jana Patočky.",
+  "createdAt": "2024-08-30",
+  "updatedAt": "2026-08-29"
+}

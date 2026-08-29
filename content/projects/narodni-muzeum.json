@@ -1,0 +1,42 @@
+{
+  "title": "Národní muzeum",
+  "slug": "narodni-muzeum",
+  "status": "published",
+  "clientName": "Národní muzeum",
+  "buildingName": "Národní muzeum",
+  "location": "Praha",
+  "year": 2025,
+  "dateStart": "",
+  "dateCompleted": "",
+  "contractValue": 81000,
+  "currency": "CZK",
+  "shortDescription": "Kontrola kamenných váz na atice, oprava oplechování, nátěr táhel a fotodokumentace střešního pláště.",
+  "fullDescription": "Kontrola kamenných váz na atice, oprava oplechování, nátěr táhel a fotodokumentace střešního pláště.",
+  "services": [
+    "klempirske-a-detailni-prace",
+    "opravy-a-udrzba-strech"
+  ],
+  "projectType": "veřejná zakázka",
+  "buildingType": "veřejný / historický objekt",
+  "heroImage": "/assets/images/national-museum.jpg",
+  "imageAlt": "Budova Národního muzea v Praze",
+  "imageCaption": "Fotografie objektu slouží jako kontext reference; není vydávána za vlastní fotodokumentaci zakázky.",
+  "gallery": [],
+  "beforeImages": [],
+  "afterImages": [],
+  "registryLinks": [
+    {
+      "label": "Registr smluv – vyhledání dle IČO",
+      "url": "https://smlouvy.gov.cz/vyhledavani?party_idnum=08645191",
+      "source": "Registr smluv"
+    }
+  ],
+  "externalLinks": [],
+  "featured": true,
+  "homepagePriority": 1,
+  "verified": true,
+  "seoTitle": "Oprava střechy Národního muzea | Závady střech Praha",
+  "seoDescription": "Veřejně dohledatelná zakázka Závady střech Praha pro Národní muzeum.",
+  "createdAt": "2025-09-15",
+  "updatedAt": "2026-08-29"
+}

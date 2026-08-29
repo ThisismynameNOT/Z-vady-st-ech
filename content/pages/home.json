@@ -1,0 +1,106 @@
+{
+  "title": "Úvod",
+  "slug": "home",
+  "seoTitle": "Závady střech Praha | Opravy a údržba střech v Praze",
+  "seoDescription": "Opravy, údržba a detailní práce na střechách v Praze. Veřejně dohledatelné reference včetně Národního muzea a Pražské tržnice.",
+  "canonicalUrl": "/",
+  "ogImage": "/assets/images/hero-prague.jpg",
+  "noIndex": false,
+  "sections": [
+    {
+      "_template": "hero",
+      "eyebrow": "Praha · opravy střech",
+      "heading": "Střecha musí|obstát v čase.",
+      "description": "Zatékání, poškozená krytina, oplechování a údržba. Pro SVJ, bytové i rodinné domy, historické, veřejné a komerční objekty v Praze.",
+      "primaryButtonLabel": "Zavolat +420 732 282 409",
+      "primaryButtonUrl": "tel:+420732282409",
+      "secondaryButtonLabel": "Poptat opravu",
+      "secondaryButtonUrl": "/kontakt/",
+      "backgroundImage": "/assets/images/hero-prague.jpg",
+      "proofItems": [
+        "Národní muzeum",
+        "Pražská tržnice",
+        "Gymnázium J. Patočky"
+      ]
+    },
+    {
+      "_template": "trustBar",
+      "items": [
+        {
+          "value": "47",
+          "label": "záznamů v Registru smluv"
+        },
+        {
+          "value": "2019",
+          "label": "vznik společnosti"
+        },
+        {
+          "value": "Praha",
+          "label": "hlavní oblast působení"
+        }
+      ]
+    },
+    {
+      "_template": "problemBand",
+      "eyebrow": "Potřebujete řešit střechu?",
+      "heading": "Řekněte nám, co se děje.",
+      "description": "Stačí adresa, typ objektu a stručný popis problému. Když je situace akutní, volejte přímo.",
+      "items": [
+        {
+          "title": "Zatéká nebo je něco uvolněné?",
+          "body": "Pro rychlé řešení volejte přímo.",
+          "label": "+420 732 282 409 →",
+          "url": "tel:+420732282409"
+        },
+        {
+          "title": "SVJ, bytový nebo rodinný dům",
+          "body": "Opravy, údržba, krytina a střešní detaily.",
+          "label": "Co řešíme →",
+          "url": "/sluzby/"
+        },
+        {
+          "title": "Historický, veřejný nebo komerční objekt",
+          "body": "Dohledatelné zakázky a hodnoty smluv.",
+          "label": "Otevřít reference →",
+          "url": "/reference/"
+        }
+      ]
+    },
+    {
+      "_template": "featuredProjects",
+      "eyebrow": "Vybrané realizace",
+      "heading": "Práce na objektech, které Praha zná.",
+      "description": "Veřejně dohledatelné zakázky. Detailní rozsah a odkazy jsou na samostatné stránce.",
+      "limit": 3
+    },
+    {
+      "_template": "processSteps",
+      "eyebrow": "Tři kroky",
+      "heading": "Od problému k domluvě.",
+      "theme": "forest",
+      "items": [
+        {
+          "title": "Popište problém",
+          "body": "Adresa, typ objektu a co se se střechou děje."
+        },
+        {
+          "title": "Domluvíme další krok",
+          "body": "Podle situace telefonicky upřesníme potřebný postup."
+        },
+        {
+          "title": "Realizace",
+          "body": "Rozsah práce vychází ze skutečného stavu střechy a dohody."
+        }
+      ]
+    },
+    {
+      "_template": "contactCta",
+      "eyebrow": "Kontakt",
+      "heading": "Řešíte střechu?|Zavolejte.",
+      "primaryLabel": "Zavolat +420 732 282 409",
+      "primaryUrl": "tel:+420732282409",
+      "secondaryLabel": "Poptat opravu",
+      "secondaryUrl": "/kontakt/"
+    }
+  ]
+}

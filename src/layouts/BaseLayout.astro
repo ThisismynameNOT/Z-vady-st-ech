@@ -1,0 +1,13 @@
+---
+import Header from '../components/layout/Header.astro';
+import Footer from '../components/layout/Footer.astro';
+import { getCompany, getSite } from '../lib/content';
+import '../styles/site.css';
+const { title, description, canonicalUrl='/', ogImage='', noIndex=false, schemaType='WebPage' }=Astro.props;
+const company=getCompany(), site=getSite();
+const base=(import.meta.env.SITE_URL || site.siteUrl || Astro.site?.toString() || 'https://zavadystrech.cz').replace(/\/$/,'');
+const canonical=new URL(canonicalUrl,base).toString();
+const og=ogImage?new URL(ogImage,base).toString():undefined;
+const schema={ '@context':'https://schema.org','@type':schemaType,name:title,url:canonical,isPartOf:{'@type':'WebSite',name:site.siteName,url:base},about:{'@type':'RoofingContractor',name:company.legalName,telephone:company.phone,email:company.email,address:company.address,areaServed:company.serviceArea}};
+---
+<!doctype html><html lang="cs"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{title}</title><meta name="description" content={description}><meta name="robots" content={noIndex?'noindex,nofollow':'index,follow'}><meta name="theme-color" content="#1c1a17"><link rel="canonical" href={canonical}><link rel="icon" href="/favicon.svg" type="image/svg+xml"><meta property="og:type" content="website"><meta property="og:title" content={title}><meta property="og:description" content={description}><meta property="og:url" content={canonical}>{og&&<meta property="og:image" content={og}/>}<meta name="twitter:card" content="summary_large_image"><script type="application/ld+json" set:html={JSON.stringify(schema)}></script><slot name="head" /></head><body><Header/><main id="main"><slot /></main><Footer/><script src="/scripts/site.js" defer></script><slot name="scripts" /></body></html>

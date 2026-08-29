@@ -1,0 +1,21 @@
+{
+  "name": "Klempířské a detailní práce",
+  "slug": "klempirske-a-detailni-prace",
+  "shortDescription": "Oplechování, napojení, lemování, atiky a kritická místa střechy.",
+  "description": "Detailní střešní práce a opravy oplechování.",
+  "items": [
+    "opravy oplechování",
+    "řešení napojení a lemování",
+    "detailní práce na atice a dalších střešních prvcích",
+    "kontrola míst, kde se poruchy často projeví jako první"
+  ],
+  "icon": "",
+  "heroImage": "/assets/images/roof-detail.jpg",
+  "relatedProjects": [
+    "narodni-muzeum"
+  ],
+  "featured": true,
+  "order": 3,
+  "seoTitle": "Klempířské práce na střechách Praha",
+  "seoDescription": "Oplechování a detailní práce na střechách v Praze."
+}

@@ -1,0 +1,7 @@
+export type Seo = { seoTitle?: string; seoDescription?: string; canonicalUrl?: string; ogImage?: string; noIndex?: boolean };
+export type PageDoc = Seo & { title: string; slug: string; sections: Array<Record<string, any>> };
+export type Project = { title:string; slug:string; status:'draft'|'published'|'archived'; clientName?:string; buildingName?:string; location?:string; year?:number; contractValue?:number; currency?:string; shortDescription?:string; fullDescription?:string; services?:string[]; projectType?:string; buildingType?:string; heroImage?:string; imageAlt?:string; imageCaption?:string; gallery?:Array<{src:string;alt?:string;caption?:string;credit?:string}>; beforeImages?:Array<{src:string;alt?:string}>; afterImages?:Array<{src:string;alt?:string}>; registryLinks?:Array<{label:string;url:string;source?:string}>; externalLinks?:Array<{label:string;url:string}>; featured?:boolean; homepagePriority?:number; verified?:boolean; seoTitle?:string; seoDescription?:string };
+export type Service = { name:string; slug:string; shortDescription?:string; description?:string; items?:string[]; heroImage?:string; relatedProjects?:string[]; featured?:boolean; order?:number; seoTitle?:string; seoDescription?:string };
+export type ReferenceRecord = {label:string;slug:string;year?:number;amount?:number;currency?:string;url:string;source?:string;order?:number;verified?:boolean};
+export type CompanySettings = Record<string, any>;
+export type SiteSettings = Record<string, any>;

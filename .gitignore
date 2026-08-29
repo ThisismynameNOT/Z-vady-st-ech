@@ -1,0 +1,14 @@
+node_modules/
+dist/
+.astro/
+tina/__generated__/
+.env
+.env.*
+!.env.example
+.dev.vars
+.dev.vars.*
+.wrangler/
+.DS_Store
+coverage/
+playwright-report/
+test-results/

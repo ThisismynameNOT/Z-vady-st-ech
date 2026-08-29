@@ -1,0 +1,31 @@
+{
+  "title": "Realizace",
+  "slug": "realizace",
+  "seoTitle": "Realizace | Závady střech Praha",
+  "seoDescription": "Vybrané realizace a veřejně dohledatelné zakázky Závady střech Praha.",
+  "canonicalUrl": "/realizace/",
+  "ogImage": "/assets/images/roof-work.jpg",
+  "noIndex": false,
+  "sections": [
+    {
+      "_template": "subHero",
+      "eyebrow": "Realizace",
+      "heading": "Vybrané realizace.",
+      "description": "Konkrétní práce, konkrétní objekty a konkrétní veřejné záznamy.",
+      "backgroundImage": "/assets/images/roof-work.jpg"
+    },
+    {
+      "_template": "projectCases",
+      "displayMode": "all"
+    },
+    {
+      "_template": "contactCta",
+      "eyebrow": "Další krok",
+      "heading": "Máte podobný problém?|Pošlete nám ho.",
+      "primaryLabel": "Poptat opravu",
+      "primaryUrl": "/kontakt/",
+      "secondaryLabel": "Všechny veřejné reference",
+      "secondaryUrl": "/reference/"
+    }
+  ]
+}
