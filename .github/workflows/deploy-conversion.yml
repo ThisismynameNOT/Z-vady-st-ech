@@ -1,0 +1,188 @@
+name: Deploy Heritage Conversion site
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.conversion-src/**'
+      - '.github/workflows/deploy-conversion.yml'
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: heritage-pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Assemble site
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p _site/assets/fonts
+          cp .conversion-src/*.html _site/
+          cp .conversion-src/*.css _site/
+          cp .conversion-src/site.js .conversion-src/robots.txt .conversion-src/favicon.svg _site/
+
+      - name: Install self-hosted typefaces
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install --no-save --ignore-scripts @fontsource/cormorant-garamond@latest @fontsource/inter@latest
+          copy_font() {
+            local pkg="$1" pattern="$2" target="$3"
+            local src
+            src="$(find "node_modules/@fontsource/$pkg/files" -type f -name "$pattern" -print -quit)"
+            test -n "$src"
+            cp "$src" "_site/assets/fonts/$target"
+          }
+          copy_font cormorant-garamond '*latin-400-normal.woff2' cormorant-garamond-400.woff2
+          copy_font cormorant-garamond '*latin-500-normal.woff2' cormorant-garamond-500.woff2
+          copy_font cormorant-garamond '*latin-600-normal.woff2' cormorant-garamond-600.woff2
+          copy_font cormorant-garamond '*latin-400-italic.woff2' cormorant-garamond-400-italic.woff2
+          copy_font inter '*latin-400-normal.woff2' inter-400.woff2
+          copy_font inter '*latin-500-normal.woff2' inter-500.woff2
+          copy_font inter '*latin-600-normal.woff2' inter-600.woff2
+
+      - name: Download licensed/context imagery
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p _site/assets
+          curl --fail --location --retry 3 'https://images.unsplash.com/photo-1768577087440-82633c9c7b85?auto=format&fit=crop&fm=jpg&q=88&w=2800' -o _site/assets/hero-prague.jpg
+          curl --fail --location --retry 3 'https://images.unsplash.com/photo-1773432114061-2ae201208630?auto=format&fit=crop&fm=jpg&q=84&w=2400' -o _site/assets/roof-detail.jpg
+          curl --fail --location --retry 3 'https://images.unsplash.com/photo-1726589004565-bedfba94d3a2?auto=format&fit=crop&fm=jpg&q=84&w=2200' -o _site/assets/roof-work.jpg
+          curl --fail --location --retry 3 'https://commons.wikimedia.org/wiki/Special:Redirect/file/Praha%20n%C3%A1rodn%C3%AD%20muzeum%201.jpg?width=2200' -o _site/assets/national-museum.jpg
+          curl --fail --location --retry 3 'https://commons.wikimedia.org/wiki/Special:Redirect/file/Hole%C5%A1ovick%C3%A1%20tr%C5%BEnice%20Cc-zero%2020241022%20153918.jpg?width=2200' -o _site/assets/prague-market.jpg
+          for f in hero-prague roof-detail roof-work national-museum prague-market; do test -s "_site/assets/$f.jpg"; done
+
+      - name: Architecture and conversion gates
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check _site/site.js
+          python3 - <<'PY'
+          from html.parser import HTMLParser
+          from pathlib import Path
+          import re
+
+          root=Path('_site')
+          pages=['index.html','realizace.html','sluzby.html','reference.html','firma.html','kontakt.html','ochrana-osobnich-udaju.html']
+          destinations={'realizace.html','sluzby.html','reference.html','firma.html','kontakt.html'}
+
+          class P(HTMLParser):
+              def __init__(self):
+                  super().__init__(); self.parts=[]; self.ids=[]; self.hrefs=[]; self.img=[]; self.in_top=False; self.in_drawer=False; self.nav=[]
+              def handle_data(self,d): self.parts.append(d)
+              def handle_starttag(self,t,a):
+                  d=dict(a); classes=d.get('class','').split()
+                  if t=='nav' and 'top-links' in classes: self.in_top=True
+                  if t=='nav' and 'drawer-nav' in classes: self.in_drawer=True
+                  if 'id' in d: self.ids.append(d['id'])
+                  if t=='a' and 'href' in d:
+                      self.hrefs.append(d['href'])
+                      if self.in_top or self.in_drawer: self.nav.append(d['href'])
+                  if t=='img' and 'src' in d: self.img.append(d['src'])
+              def handle_endtag(self,t):
+                  if t=='nav' and self.in_top: self.in_top=False
+                  elif t=='nav' and self.in_drawer: self.in_drawer=False
+
+          for page in pages:
+              source=(root/page).read_text(encoding='utf-8')
+              parser=P(); parser.feed(source)
+              if 'noindex,nofollow' not in source: raise SystemExit(f'Staging index protection missing: {page}')
+              if len(parser.ids) != len(set(parser.ids)): raise SystemExit(f'Duplicate IDs in {page}')
+              if 'Poptat prohlídku' in source or 'Poptat projekt' in source: raise SystemExit(f'Old CTA language remains: {page}')
+              if not destinations.issubset(set(parser.nav)): raise SystemExit(f'Dedicated-page navigation incomplete: {page}')
+              for href in parser.nav:
+                  if '#' in href: raise SystemExit(f'Navigation section jump remains: {page} / {href}')
+              for href in parser.hrefs:
+                  base=href.split('#',1)[0]
+                  if not base or base.startswith(('http://','https://','mailto:','tel:')): continue
+                  if not (root/base).exists(): raise SystemExit(f'Broken local link {href} in {page}')
+              for src in parser.img:
+                  if not (root/src).exists(): raise SystemExit(f'Missing image {src} in {page}')
+
+          source=(root/'index.html').read_text(encoding='utf-8')
+          p=P(); p.feed(source)
+          home=' '.join(' '.join(p.parts).split())
+          words=re.findall(r'\b[\wÀ-ž]+\b', home)
+          if len(words) >= 350: raise SystemExit(f'Homepage is still too long: {len(words)} words')
+          for phrase in ['Střecha musí obstát v čase.','SVJ','rodinné','Poptat opravu','+420 732 282 409','class="nav-phone"']:
+              if phrase not in source and phrase not in home: raise SystemExit(f'Missing homepage conversion marker: {phrase}')
+
+          js=(root/'site.js').read_text(encoding='utf-8')
+          contact=(root/'kontakt.html').read_text(encoding='utf-8')
+          for marker in ['ee327944-8098-4f6f-9000-dd8964baa26b','980c885d-d4c7-4426-8ae4-0c5f51755390']:
+              if marker not in js: raise SystemExit(f'Missing Wix integration marker: {marker}')
+          if 'roofForm' not in contact: raise SystemExit('Contact form missing')
+          for host in ['images.unsplash.com','commons.wikimedia.org','fonts.googleapis.com','fonts.gstatic.com']:
+              for f in pages+['styles.css','styles-base.css','styles-components.css','styles-responsive.css','site.js']:
+                  if host in (root/f).read_text(encoding='utf-8'):
+                      raise SystemExit(f'External asset hotlink remains in source: {host} / {f}')
+          PY
+          grep -q 'Disallow: /' _site/robots.txt
+          touch _site/.nojekyll
+
+      - name: Validate Wix visitor authentication
+        shell: bash
+        run: |
+          set -euo pipefail
+          TOKEN_RESPONSE="$(curl --fail --silent --show-error --location 'https://www.wixapis.com/oauth2/token' --header 'Content-Type: application/json' --data '{"clientId":"ee327944-8098-4f6f-9000-dd8964baa26b","grantType":"anonymous"}')"
+          ACCESS_TOKEN="$(printf '%s' "$TOKEN_RESPONSE" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("access_token", ""))')"
+          test -n "$ACCESS_TOKEN"
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Deploy Heritage Conversion site
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+  smoke:
+    name: Verify public multi-page release
+    runs-on: ubuntu-latest
+    needs: deploy
+    steps:
+      - name: Check live Pages output
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE='https://thisismynamenot.github.io/Claude'
+          ready=0
+          for attempt in {1..12}; do
+            if curl --fail --silent --show-error --location --header 'Cache-Control: no-cache' "$BASE/?release=${GITHUB_SHA}&attempt=$attempt" -o /tmp/live.html; then
+              if grep -q 'Poptat opravu' /tmp/live.html && grep -q 'SVJ' /tmp/live.html; then ready=1; break; fi
+            fi
+            sleep 5
+          done
+          test "$ready" -eq 1
+          grep -q 'nav-phone' /tmp/live.html
+          grep -q '+420 732 282 409' /tmp/live.html
+          ! grep -q 'Poptat prohlídku' /tmp/live.html
+          for page in index.html realizace.html sluzby.html reference.html firma.html kontakt.html ochrana-osobnich-udaju.html styles.css styles-base.css styles-components.css styles-responsive.css site.js favicon.svg; do
+            curl --fail --silent --show-error --location --output /dev/null "$BASE/$page"
+          done
+          curl --fail --silent --show-error --location "$BASE/kontakt.html" | grep -q 'Poptávka střechy'
+          curl --fail --silent --show-error --location "$BASE/reference.html" | grep -q 'Důvěra, kterou lze'
