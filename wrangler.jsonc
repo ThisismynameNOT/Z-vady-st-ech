@@ -4,12 +4,14 @@
   "main": "@astrojs/cloudflare/entrypoints/server",
   "compatibility_date": "2026-08-29",
   "compatibility_flags": ["nodejs_compat"],
+  "keep_vars": true,
   "assets": { "binding": "ASSETS", "directory": "./dist" },
   "observability": { "enabled": true },
   "ratelimits": [
     { "name": "FORM_RATE_LIMITER", "namespace_id": "1001", "simple": { "limit": 5, "period": 60 } }
   ],
   "vars": {
-    "CLOUDINARY_FOLDER": "zavady-strech"
+    "CLOUDINARY_FOLDER": "zavady-strech",
+    "PUBLIC_TINA_CLIENT_ID": "69d01b9e-133c-4843-aad0-0b0fdabfc6e6"
   }
 }
