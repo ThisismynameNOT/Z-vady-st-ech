@@ -6,7 +6,7 @@ import { tinaAdminDevRedirect } from '@tinacms/astro/vite';
 export default defineConfig({
   site: process.env.SITE_URL || undefined,
   output: 'server',
-  adapter: cloudflare(),
+  adapter: cloudflare({ imageService: 'passthrough' }),
   session: false,
   trailingSlash: 'always',
   integrations: [tina()],
