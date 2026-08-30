@@ -9,7 +9,7 @@
   "scripts": {
     "dev": "tinacms dev -c \"astro dev\"",
     "dev:worker": "tinacms dev -c \"wrangler dev\"",
-    "build": "tinacms build --content=local -c \"astro build\"",
+    "build": "tinacms build -c \"astro build\"",
     "build:local": "tinacms build --local --skip-cloud-checks && astro build",
     "build:astro": "astro build",
     "preview": "wrangler dev",
