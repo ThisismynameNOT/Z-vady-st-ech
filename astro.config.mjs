@@ -4,9 +4,10 @@ import tina from '@tinacms/astro/integration';
 import { tinaAdminDevRedirect } from '@tinacms/astro/vite';
 
 export default defineConfig({
-  site: process.env.SITE_URL || 'https://zavadystrech.cz',
+  site: process.env.SITE_URL || undefined,
   output: 'server',
   adapter: cloudflare(),
+  session: false,
   trailingSlash: 'always',
   integrations: [tina()],
   vite: {
