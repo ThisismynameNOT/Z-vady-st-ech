@@ -127,3 +127,8 @@ test('unused Astro sessions are disabled to avoid unnecessary KV provisioning', 
   const astro = fs.readFileSync(path.join(root, 'astro.config.mjs'), 'utf8');
   assert.match(astro, /session\s*:\s*false/);
 });
+
+test('Astro does not provision an unused Cloudflare Images binding', () => {
+  const astro = fs.readFileSync(path.join(root, 'astro.config.mjs'), 'utf8');
+  assert.match(astro, /imageService\s*:\s*['"]passthrough['"]/);
+});
