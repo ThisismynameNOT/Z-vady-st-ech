@@ -105,6 +105,7 @@ test('repo does not assume an unowned custom domain', () => {
     'src/pages/robots.txt.ts',
     'src/pages/sitemap.xml.ts',
     'wrangler.jsonc',
+    '.github/workflows/cms-platform-ci.yml',
     '.github/workflows/deploy-cloudflare.yml',
   ];
   for (const file of files) {
