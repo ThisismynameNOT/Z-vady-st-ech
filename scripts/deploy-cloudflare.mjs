@@ -3,7 +3,13 @@ import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-const requiredSecrets = ['CLOUDINARY_API_KEY', 'CLOUDINARY_API_SECRET'];
+const requiredSecrets = [
+  'CLOUDINARY_API_KEY',
+  'CLOUDINARY_API_SECRET',
+  'RESEND_API_KEY',
+  'FORM_RECIPIENT_EMAIL',
+  'FORM_FROM_EMAIL',
+];
 const missing = requiredSecrets.filter((name) => !process.env[name]);
 
 if (missing.length) {

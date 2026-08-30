@@ -11,8 +11,11 @@ test('Cloudflare deploy script promotes build secrets into Worker runtime', () =
   const source = fs.readFileSync('scripts/deploy-cloudflare.mjs', 'utf8');
   assert.match(source, /CLOUDINARY_API_KEY/);
   assert.match(source, /CLOUDINARY_API_SECRET/);
+  assert.match(source, /RESEND_API_KEY/);
+  assert.match(source, /FORM_RECIPIENT_EMAIL/);
+  assert.match(source, /FORM_FROM_EMAIL/);
   assert.match(source, /--secrets-file/);
   assert.match(source, /wrangler/);
   assert.match(source, /rm\(/);
-  assert.doesNotMatch(source, /console\.log\([^)]*CLOUDINARY_API_(?:KEY|SECRET)/);
+  assert.doesNotMatch(source, /console\.log\([^)]*(?:CLOUDINARY_API_(?:KEY|SECRET)|RESEND_API_KEY|FORM_RECIPIENT_EMAIL|FORM_FROM_EMAIL)/);
 });
