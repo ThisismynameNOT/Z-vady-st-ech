@@ -1,5 +1,5 @@
 import { defineConfig } from 'tinacms'; import RoofingCloudinaryMediaStore from './media/cloudinary-store';
-const branch=process.env.GITHUB_HEAD_REF || process.env.CF_PAGES_BRANCH || process.env.GITHUB_REF_NAME || 'main';
+const branch=process.env.GITHUB_HEAD_REF || process.env.WORKERS_CI_BRANCH || process.env.CF_PAGES_BRANCH || process.env.GITHUB_REF_NAME || 'main';
 const seoFields=[{type:'string',name:'seoTitle',label:'SEO titulek'},{type:'string',name:'seoDescription',label:'SEO popis',ui:{component:'textarea'}},{type:'string',name:'canonicalUrl',label:'Kanonická URL'},{type:'image',name:'ogImage',label:'Obrázek pro sdílení'},{type:'boolean',name:'noIndex',label:'Zakázat indexaci'}] as any;
 const imageMeta=(name:string,label:string)=>({type:'object',name,label,list:true,fields:[{type:'image',name:'src',label:'Obrázek'},{type:'string',name:'alt',label:'Alternativní text'},{type:'string',name:'caption',label:'Popisek'},{type:'string',name:'credit',label:'Autor / zdroj'}]});
 const blockTemplates:any[]=[

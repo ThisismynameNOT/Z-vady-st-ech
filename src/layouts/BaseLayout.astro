@@ -14,7 +14,8 @@ const {
 } = Astro.props;
 const company = getCompany();
 const site = getSite();
-const base = (import.meta.env.SITE_URL || site.siteUrl || Astro.site?.toString() || 'https://zavadystrech.cz').replace(/\/$/, '');
+const configuredBase = import.meta.env.SITE_URL || site.siteUrl || Astro.site?.toString();
+const base = (configuredBase || Astro.url.origin).replace(/\/$/, '');
 const canonical = new URL(canonicalUrl, base).toString();
 const og = ogImage ? new URL(ogImage, base).toString() : undefined;
 const schema = {
