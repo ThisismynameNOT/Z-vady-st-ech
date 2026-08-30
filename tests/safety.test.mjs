@@ -94,3 +94,35 @@ test('CI blocks high-severity production dependency vulnerabilities', () => {
   );
   assert.ok(ci.includes('npm audit --omit=dev --audit-level=high'));
 });
+
+test('repo does not assume an unowned custom domain', () => {
+  const files = [
+    '.env.example',
+    'astro.config.mjs',
+    'content/settings/site/site.json',
+    'src/layouts/BaseLayout.astro',
+    'src/pages/api/enquiry.ts',
+    'src/pages/robots.txt.ts',
+    'src/pages/sitemap.xml.ts',
+    'wrangler.jsonc',
+    '.github/workflows/deploy-cloudflare.yml',
+  ];
+  for (const file of files) {
+    const source = fs.readFileSync(path.join(root, file), 'utf8');
+    assert.equal(source.includes('zavadystrech.cz'), false, file);
+  }
+});
+
+test('Tina detects Cloudflare Workers build branches', () => {
+  const tina = fs.readFileSync(path.join(root, 'tina/config.ts'), 'utf8');
+  assert.ok(tina.includes('process.env.WORKERS_CI_BRANCH'));
+});
+
+test('Tina lock file is committed for TinaCloud indexing', () => {
+  assert.equal(fs.existsSync(path.join(root, 'tina/tina-lock.json')), true);
+});
+
+test('unused Astro sessions are disabled to avoid unnecessary KV provisioning', () => {
+  const astro = fs.readFileSync(path.join(root, 'astro.config.mjs'), 'utf8');
+  assert.match(astro, /session\s*:\s*false/);
+});
