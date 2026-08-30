@@ -13,7 +13,7 @@
     "build:local": "tinacms build --local --skip-cloud-checks && astro build",
     "build:astro": "astro build",
     "preview": "wrangler dev",
-    "deploy": "wrangler deploy",
+    "deploy": "node scripts/deploy-cloudflare.mjs",
     "cf-typegen": "wrangler types",
     "typecheck": "npm run cf-typegen && astro check",
     "test": "node --test tests/*.test.mjs",
