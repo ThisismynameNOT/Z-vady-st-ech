@@ -1,0 +1,1 @@
+PR CI is the authoritative RED verification for tests/brand-accessible-name.test.mjs.
