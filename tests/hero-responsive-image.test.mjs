@@ -6,7 +6,7 @@ const renderer = fs.readFileSync(new URL('../src/components/sections/SectionRend
 const css = fs.readFileSync(new URL('../src/styles/site.css', import.meta.url), 'utf8');
 const home = JSON.parse(fs.readFileSync(new URL('../content/pages/home.json', import.meta.url), 'utf8'));
 const hero = renderer.match(/\{t==='hero'[\s\S]*?(?=\n\{t==='trustBar')/)?.[0] || '';
-const assetRoot = new URL('../public/assets/images/', import.meta.url);
+const assetRoot = new URL('../public/assets/hero/', import.meta.url);
 const widths = [640, 1024, 1600];
 const originalVisualRule = 'width:100%;height:100%;object-fit:cover;filter:saturate(.76) contrast(1.02)';
 
