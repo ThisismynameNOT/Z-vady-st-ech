@@ -1,0 +1,70 @@
+name: Verify Production Heading Order
+
+on:
+  push:
+    branches: [qa/verify-heading-order-production]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  lighthouse:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      TARGET_URL: https://zavady-strech-praha.iadamt-93.workers.dev/
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install Lighthouse
+        run: npm install --no-save --package-lock=false lighthouse@12.8.2
+      - name: Run Homepage Lighthouse mobile
+        run: >-
+          npx lighthouse "$TARGET_URL"
+          --output=json
+          --output-path=lh-mobile.json
+          --chrome-flags="--headless --no-sandbox --disable-dev-shm-usage"
+          --only-categories=performance,accessibility,best-practices,seo
+          --quiet
+      - name: Run Homepage Lighthouse desktop
+        run: >-
+          npx lighthouse "$TARGET_URL"
+          --preset=desktop
+          --output=json
+          --output-path=lh-desktop.json
+          --chrome-flags="--headless --no-sandbox --disable-dev-shm-usage"
+          --only-categories=performance,accessibility,best-practices,seo
+          --quiet
+      - name: Verify heading-order passes
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          const reports = [
+            ['mobile', JSON.parse(fs.readFileSync('lh-mobile.json', 'utf8'))],
+            ['desktop', JSON.parse(fs.readFileSync('lh-desktop.json', 'utf8'))],
+          ];
+          let failed = false;
+          for (const [name, report] of reports) {
+            const heading = report.audits['heading-order'];
+            const scores = Object.fromEntries(Object.entries(report.categories).map(([k,v]) => [k, Math.round((v.score ?? 0) * 100)]));
+            console.log(JSON.stringify({
+              mode: name,
+              headingOrderScore: heading?.score ?? null,
+              headingOrderTitle: heading?.title ?? null,
+              headingOrderDetails: heading?.details ?? null,
+              scores,
+            }, null, 2));
+            if (heading?.score !== 1) failed = true;
+          }
+          if (failed) process.exit(1);
+          NODE
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: production-heading-order-lighthouse
+          path: |
+            lh-mobile.json
+            lh-desktop.json
+          if-no-files-found: error
