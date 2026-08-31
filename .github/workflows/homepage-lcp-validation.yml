@@ -1,0 +1,55 @@
+name: Homepage LCP Validation
+
+on:
+  push:
+    branches: [qa/homepage-lcp-validation]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/homepage-mobile-lcp
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - run: npm ci --no-audit --no-fund
+      - name: Inspect original hero asset
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          const crypto = require('crypto');
+          const file = 'public/assets/images/hero-prague.jpg';
+          const buf = fs.readFileSync(file);
+          let offset = 2, width = null, height = null;
+          while (offset < buf.length) {
+            if (buf[offset] !== 0xff) { offset++; continue; }
+            const marker = buf[offset + 1];
+            if ([0xc0,0xc1,0xc2,0xc3,0xc5,0xc6,0xc7,0xc9,0xca,0xcb,0xcd,0xce,0xcf].includes(marker)) {
+              height = buf.readUInt16BE(offset + 5);
+              width = buf.readUInt16BE(offset + 7);
+              break;
+            }
+            const length = buf.readUInt16BE(offset + 2);
+            if (!length) break;
+            offset += 2 + length;
+          }
+          console.log(JSON.stringify({
+            file,
+            bytes: buf.length,
+            width,
+            height,
+            sha256: crypto.createHash('sha256').update(buf).digest('hex')
+          }, null, 2));
+          if (!width || !height) process.exit(1);
+          NODE
+      - name: TDD regression suite
+        run: npm test
