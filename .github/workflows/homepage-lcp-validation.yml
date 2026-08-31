@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   validate:
@@ -59,7 +59,7 @@ jobs:
           const fs = require('fs');
           const sharp = require('sharp');
           const input = 'public/assets/images/hero-prague.jpg';
-          const outputDir = 'hero-derivatives';
+          const outputDir = 'public/assets/hero';
           const widths = [640, 1024, 1600];
           fs.mkdirSync(outputDir, { recursive: true });
           (async () => {
@@ -76,10 +76,21 @@ jobs:
             }
           })().catch((error) => { console.error(error); process.exit(1); });
           NODE
+      - name: Commit generated delivery assets to feature branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/assets/hero
+          if git diff --cached --quiet; then
+            echo "Responsive hero assets already committed"
+          else
+            git commit -m "perf: add responsive hero derivatives"
+            git push origin HEAD:fix/homepage-mobile-lcp
+          fi
       - uses: actions/upload-artifact@v4
         with:
           name: hero-derivatives
-          path: hero-derivatives
+          path: public/assets/hero
           if-no-files-found: error
       - name: TDD regression suite
         run: npm test
