@@ -31,14 +31,16 @@ The permanent CI gate runs dependency installation, a high-severity production d
 ## Deployment
 The production target is **Cloudflare Workers**, not Cloudflare Pages. `wrangler.jsonc` contains the Worker entrypoint, static assets, observability and the form rate-limit binding.
 
-The preferred initial activation path is Cloudflare Workers Git Builds connected to this repository on `main`:
+The active production path is Cloudflare Workers Git Builds connected to this repository on `main`:
 
 - Build command: `npm run build`
-- Deploy command: `npx wrangler deploy`
+- Deploy command: `npm run deploy`
 - Root directory: repository root
 - No Pages build-output directory is used
 
-Cloudflare's first real `workers.dev` URL becomes the deployment URL for TinaCloud and optional `SITE_URL` configuration. No custom domain is assumed or required.
+`npm run deploy` executes `scripts/deploy-cloudflare.mjs`, which passes the configured Cloudinary and Resend build secrets to Wrangler's Worker runtime without printing them or committing them to the repository.
+
+The current `workers.dev` deployment remains the production QA origin until a client-owned custom domain is available. `SITE_URL` stays optional until that permanent origin exists.
 
 `.github/workflows/deploy-cloudflare.yml` remains an optional GitHub Actions deployment path. It is disabled unless `CLOUDFLARE_DEPLOY_ENABLED=true` is explicitly set, to prevent competing/double deployments while Cloudflare Git Builds are used.
 
