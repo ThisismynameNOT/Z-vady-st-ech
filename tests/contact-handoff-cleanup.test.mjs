@@ -53,6 +53,6 @@ test('production checklist records already verified platform activation', async 
   ];
 
   for (const item of completed) {
-    assert.match(checklist, new RegExp(`- \\[x\\] ${item.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\$&')}`));
+    assert.ok(checklist.includes(`- [x] ${item}`), `missing completed checklist item: ${item}`);
   }
 });
