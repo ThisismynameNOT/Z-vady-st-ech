@@ -1,0 +1,96 @@
+name: Final Acceptance QA
+
+on:
+  push:
+    branches:
+      - qa/final-acceptance-2026-08-31
+
+permissions:
+  contents: read
+
+jobs:
+  production-acceptance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install browser QA tools
+        run: |
+          npm install --no-save --package-lock=false playwright@1.55.0 axe-core@4.10.3 lighthouse@12.8.2
+          npx playwright install --with-deps chromium
+
+      - name: Run responsive and interaction acceptance
+        id: acceptance
+        continue-on-error: true
+        run: node qa/final-acceptance.mjs
+
+      - name: Run Lighthouse audits
+        id: lighthouse
+        if: always()
+        continue-on-error: true
+        env:
+          BASE_URL: https://zavady-strech-praha.iadamt-93.workers.dev
+        run: |
+          mkdir -p qa-results/lighthouse
+          export CHROME_PATH="$(node -e "const { chromium }=require('playwright'); console.log(chromium.executablePath())")"
+          npx lighthouse "$BASE_URL/" --quiet --chrome-flags="--headless --no-sandbox" --only-categories=performance,accessibility,best-practices,seo --output=json --output-path=qa-results/lighthouse/home-mobile.json
+          npx lighthouse "$BASE_URL/" --quiet --preset=desktop --chrome-flags="--headless --no-sandbox" --only-categories=performance,accessibility,best-practices,seo --output=json --output-path=qa-results/lighthouse/home-desktop.json
+          npx lighthouse "$BASE_URL/kontakt/" --quiet --chrome-flags="--headless --no-sandbox" --only-categories=performance,accessibility,best-practices,seo --output=json --output-path=qa-results/lighthouse/contact-mobile.json
+          npx lighthouse "$BASE_URL/kontakt/" --quiet --preset=desktop --chrome-flags="--headless --no-sandbox" --only-categories=performance,accessibility,best-practices,seo --output=json --output-path=qa-results/lighthouse/contact-desktop.json
+
+      - name: Summarize Lighthouse
+        if: always()
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          const dir = 'qa-results/lighthouse';
+          if (!fs.existsSync(dir)) process.exit(0);
+          const files = fs.readdirSync(dir).filter((x) => x.endsWith('.json'));
+          const summary = {};
+          for (const file of files) {
+            const j = JSON.parse(fs.readFileSync(`${dir}/${file}`, 'utf8'));
+            const score = (key) => Math.round((j.categories?.[key]?.score ?? 0) * 100);
+            const metric = (id) => j.audits?.[id]?.displayValue ?? null;
+            summary[file.replace('.json','')] = {
+              performance: score('performance'),
+              accessibility: score('accessibility'),
+              bestPractices: score('best-practices'),
+              seo: score('seo'),
+              FCP: metric('first-contentful-paint'),
+              LCP: metric('largest-contentful-paint'),
+              CLS: metric('cumulative-layout-shift'),
+              TBT: metric('total-blocking-time'),
+              speedIndex: metric('speed-index'),
+            };
+          }
+          fs.mkdirSync('qa-results', { recursive: true });
+          fs.writeFileSync('qa-results/lighthouse-summary.json', JSON.stringify(summary, null, 2));
+          fs.writeFileSync('qa-results/lighthouse-summary.txt', Object.entries(summary).map(([name,v]) => `${name}: perf=${v.performance} a11y=${v.accessibility} best=${v.bestPractices} seo=${v.seo} FCP=${v.FCP} LCP=${v.LCP} CLS=${v.CLS} TBT=${v.TBT}`).join('\n'));
+          console.log(summary);
+          NODE
+
+      - name: Upload QA evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: final-acceptance-qa
+          path: qa-results
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Enforce interaction acceptance result
+        if: always()
+        run: |
+          if [ "${{ steps.acceptance.outcome }}" != "success" ]; then
+            echo "Responsive/interaction acceptance found failures or the runner crashed."
+            exit 1
+          fi
+          if [ "${{ steps.lighthouse.outcome }}" != "success" ]; then
+            echo "Lighthouse runner failed to complete."
+            exit 1
+          fi
