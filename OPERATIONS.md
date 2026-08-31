@@ -3,12 +3,14 @@
 ## Deployment model
 GitHub is the source of truth for code and structured content. TinaCloud provides authenticated editing. Cloudflare Workers is the runtime target. Cloudflare Pages is not part of the production architecture.
 
-For the current activation, use **Cloudflare Workers Git Builds** connected to `ThisismynameNOT/Z-vady-st-ech` on `main`:
+For the current production path, use **Cloudflare Workers Git Builds** connected to `ThisismynameNOT/Z-vady-st-ech` on `main`:
 
 - Build command: `npm run build`
-- Deploy command: `npx wrangler deploy`
+- Deploy command: `npm run deploy`
 - Root directory: repository root
 - Build output directory: not applicable (that is a Pages setting)
+
+`npm run deploy` executes `scripts/deploy-cloudflare.mjs`. The wrapper requires the Cloudinary and Resend build secrets, writes them only to a temporary mode-0600 secrets file, calls Wrangler with that secrets file, and removes the temporary file afterward. This keeps the live Worker runtime bindings aligned with the production build without committing or printing secret values.
 
 The repository also contains `.github/workflows/deploy-cloudflare.yml` as an optional fallback deployment path. It stays disabled unless `CLOUDFLARE_DEPLOY_ENABLED=true` is deliberately set, so Cloudflare Git Builds and GitHub Actions cannot accidentally compete.
 
@@ -20,10 +22,10 @@ The production Tina build requires:
 
 `tina/tina-lock.json` is committed for TinaCloud schema indexing. `tina/config.ts` reads `WORKERS_CI_BRANCH` so Cloudflare Workers builds target the correct Git branch.
 
-Until a real deployed URL exists, TinaCloud only needs the local origin `http://localhost:4321`. After the first Worker deployment succeeds, add the exact `https://<worker>.<account>.workers.dev` origin to TinaCloud Site URLs.
+The current production QA origin is `https://zavady-strech-praha.iadamt-93.workers.dev`. Keep that origin authorized in TinaCloud until a client-owned custom domain replaces it.
 
 ## Cloudflare Worker runtime values
-Before media/form acceptance testing, configure these in Cloudflare Worker Variables and Secrets:
+These production Worker variables/secrets are required for the currently verified CMS media and enquiry flows:
 
 - `PUBLIC_TINA_CLIENT_ID` — needed by the authenticated Cloudinary media API.
 - `PUBLIC_CLOUDINARY_CLOUD_NAME`
@@ -35,7 +37,7 @@ Before media/form acceptance testing, configure these in Cloudflare Worker Varia
 - `FORM_FROM_EMAIL`
 - `TURNSTILE_SECRET_KEY` only if Turnstile is enabled.
 
-`SITE_URL` is optional. Before a stable domain is known, canonical URLs, sitemap/robots output, and form-origin validation fall back to the active Worker request origin. Once a permanent custom domain is actually owned and connected, `SITE_URL` may be set to that verified origin.
+`SITE_URL` remains optional while the site is using the temporary `workers.dev` production QA origin. Canonical URLs, sitemap/robots output, and form-origin validation fall back to the active Worker request origin. Once a permanent custom domain is actually owned and connected, set `SITE_URL` to that verified canonical origin.
 
 ## GitHub Actions fallback deployment secrets
 Only needed if the optional GitHub deployment workflow is intentionally enabled:
@@ -48,17 +50,8 @@ Only needed if the optional GitHub deployment workflow is intentionally enabled:
 
 Do not store Cloudflare, Tina, Cloudinary or mail credentials in repository files.
 
-## First controlled deployment
-1. Confirm TinaCloud is connected to this repository and `main`.
-2. Configure `PUBLIC_TINA_CLIENT_ID` and secret `TINA_TOKEN` in the Cloudflare Workers build environment.
-3. Create/import the app through **Workers Git Builds**, not Pages.
-4. Deploy and record the real `workers.dev` URL.
-5. Add that exact origin to TinaCloud Site URLs.
-6. Verify the public routes and `/admin/` login.
-7. Configure Cloudinary runtime credentials and test media list/upload/select/delete.
-8. Configure Resend and perform one real enquiry delivery test.
-9. Run responsive/visual/accessibility acceptance QA.
-10. Only if a custom domain is actually purchased/owned later, connect it in Cloudflare, set the canonical `SITE_URL`, add it to TinaCloud, and verify HTTPS/redirect behavior.
+## Current production activation
+The Worker Git Build is connected to `main`, TinaCloud authentication is active, Cloudinary media list/upload/select/delete has been accepted, and a real Resend enquiry has been delivered successfully with Reply-To targeting the visitor address. The remaining acceptance work is tracked in `docs/production-activation-checklist.md`.
 
 ## Rollback
 Revert the bad Git commit or redeploy a known-good Worker version. Structured content is recoverable from Git history. Cloudflare Worker versions can also be rolled back in Cloudflare.
