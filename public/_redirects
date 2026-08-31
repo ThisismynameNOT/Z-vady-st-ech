@@ -1,0 +1,8 @@
+# Legacy static-site URLs preserved for existing links and bookmarks.
+/index.html / 301
+/firma.html /firma/ 301
+/sluzby.html /sluzby/ 301
+/realizace.html /realizace/ 301
+/reference.html /reference/ 301
+/kontakt.html /kontakt/ 301
+/ochrana-osobnich-udaju.html /ochrana-osobnich-udaju/ 301
