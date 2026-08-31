@@ -2,12 +2,15 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
-const css = fs.readFileSync(new URL('../src/styles/site.css', import.meta.url), 'utf8');
+const css = [
+  fs.readFileSync(new URL('../src/styles/site.css', import.meta.url), 'utf8'),
+  fs.readFileSync(new URL('../src/styles/accessibility.css', import.meta.url), 'utf8'),
+].join('\n');
 
 function variable(name) {
-  const match = css.match(new RegExp(`${name}:(#[0-9a-fA-F]{6})`));
-  assert.ok(match, `missing ${name} color token`);
-  return match[1];
+  const matches = [...css.matchAll(new RegExp(`${name}:(#[0-9a-fA-F]{6})`, 'g'))];
+  assert.ok(matches.length, `missing ${name} color token`);
+  return matches.at(-1)[1];
 }
 
 function luminance(hex) {
