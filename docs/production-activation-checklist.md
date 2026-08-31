@@ -1,52 +1,53 @@
 # Production activation checklist
 
-This checklist tracks the final activation phase for the Astro + TinaCMS + Cloudflare Workers site. No custom domain is currently assumed or required.
+This checklist tracks the final activation phase for the Astro + TinaCMS + Cloudflare Workers site. The current production QA origin is `https://zavady-strech-praha.iadamt-93.workers.dev`. No client-owned custom domain is available yet.
 
 ## TinaCloud
 
 - [x] TinaCloud project connected to `ThisismynameNOT/Z-vady-st-ech` / `main`
 - [x] `tina/tina-lock.json` generated and committed for schema indexing
 - [x] Tina config supports Cloudflare Workers `WORKERS_CI_BRANCH`
-- [ ] `PUBLIC_TINA_CLIENT_ID` configured in the Workers build environment
-- [ ] `TINA_TOKEN` configured as a secret in the Workers build environment
-- [ ] First real `workers.dev` origin added to TinaCloud Site URLs
-- [ ] `/admin/` login verified on the Worker deployment
-- [ ] One safe edit/save/restore verified through TinaCloud
+- [x] `PUBLIC_TINA_CLIENT_ID` configured in the Workers build environment
+- [x] `TINA_TOKEN` configured as a secret in the Workers build environment
+- [x] First real `workers.dev` origin added to TinaCloud Site URLs
+- [x] `/admin/` login verified on the Worker deployment
+- [ ] One safe homepage edit/save/restore verified through TinaCloud
 
 ## Cloudflare Workers
 
-- [ ] Workers Git Build connected to `main` (not Pages)
-- [ ] Build command is `npm run build`
-- [ ] Deploy command is `npx wrangler deploy`
-- [ ] Controlled first Worker deployment succeeds
-- [ ] Exact `workers.dev` URL recorded
-- [ ] Public routes and `/admin/` verified on that URL
-- [ ] Runtime variables/secrets configured as needed
-- [ ] Optional GitHub Actions deploy remains disabled unless intentionally selected
+- [x] Workers Git Build connected to `main` (not Pages)
+- [x] Build command is `npm run build`
+- [x] Deploy command is `npm run deploy`
+- [x] Controlled first Worker deployment succeeds
+- [x] Exact `workers.dev` URL recorded
+- [x] Public routes and `/admin/` verified on that URL
+- [x] Runtime variables/secrets configured as needed
+- [x] Optional GitHub Actions deploy remains disabled unless intentionally selected
 
 ## Cloudinary
 
-- [ ] `PUBLIC_CLOUDINARY_CLOUD_NAME` configured
-- [ ] `CLOUDINARY_API_KEY` configured as a Worker secret
-- [ ] `CLOUDINARY_API_SECRET` configured as a Worker secret
-- [ ] Tina media list/upload/select/delete verified
+- [x] `PUBLIC_CLOUDINARY_CLOUD_NAME` configured
+- [x] `CLOUDINARY_API_KEY` configured as a Worker secret
+- [x] `CLOUDINARY_API_SECRET` configured as a Worker secret
+- [x] Tina media list/upload/select/delete verified
 
 ## Enquiry delivery
 
-- [ ] Resend sender verified
-- [ ] `RESEND_API_KEY` configured
-- [ ] `FORM_RECIPIENT_EMAIL` configured
-- [ ] `FORM_FROM_EMAIL` configured
-- [ ] One real enquiry delivered successfully
+- [ ] Branded/domain sender verification — blocked until a client production domain exists
+- [x] `RESEND_API_KEY` configured
+- [x] `FORM_RECIPIENT_EMAIL` configured
+- [x] `FORM_FROM_EMAIL` configured
+- [x] One real enquiry delivered successfully
+- [x] Reply-To verified against the visitor e-mail entered in the form
 
 ## Acceptance QA
 
-- [ ] Mobile 320 / 375 / 390 / 430 px
-- [ ] Tablet, laptop and desktop
+- [ ] Mobile 320 / 375 / 390 / 430 px final acceptance
+- [ ] Tablet, laptop and desktop final acceptance
 - [ ] Inter and Cormorant fonts render from `/assets/fonts/`
-- [ ] Navigation, drawer and mobile CTA verified
-- [ ] Legacy `.html` redirects verified
-- [ ] CMS create/delete test project
+- [ ] Navigation, drawer and mobile CTA final acceptance
+- [ ] Legacy `.html` redirects verified on the deployed Worker
+- [x] CMS create/delete test project
 - [ ] Homepage edit/restore
 - [ ] Add/reorder/remove a page section
 - [ ] Global contact edit/restore
@@ -54,7 +55,7 @@ This checklist tracks the final activation phase for the Astro + TinaCMS + Cloud
 
 ## Optional future custom domain
 
-- [ ] Domain is actually purchased/owned
+- [ ] Domain is actually purchased/owned — client confirmed none exists yet
 - [ ] Domain connected to Worker with HTTPS
 - [ ] Verified domain added to TinaCloud Site URLs
 - [ ] `SITE_URL` set to the verified canonical origin
@@ -62,6 +63,6 @@ This checklist tracks the final activation phase for the Astro + TinaCMS + Cloud
 
 ## Client data still pending
 
-- [ ] Replace `pehlo@seznam.cz` only after a branded mailbox is created and tested
-- [ ] Add genuine project photography after ownership/project association is confirmed
+- [ ] Replace `pehlo@seznam.cz` after a branded mailbox is created and tested — none exists yet
+- [ ] Add genuine project photography after ownership/project association is confirmed — none supplied yet
 - [ ] Add warranty/insurance/team/qualification claims only after they are verified
