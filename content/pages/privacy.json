@@ -20,8 +20,7 @@
       "paragraphs": [
         "Při odeslání poptávky zpracovává společnost Závady střech Praha s.r.o., IČO 08645191, údaje, které do formuláře uvedete — zejména jméno, telefon, e-mail, typ objektu, popis problému a případnou poznámku.",
         "Účelem je vyřízení vaší poptávky, komunikace o požadované službě a navazující obchodní komunikace související s konkrétním požadavkem.",
-        "Poptávky jsou technicky zpracovány prostřednictvím zabezpečeného serverového endpointu na Cloudflare Workers a doručeny na konfigurovanou firemní e-mailovou adresu.",
-        "Tento text je provozní informace k formuláři a před ostrým spuštěním má být potvrzen provozovatelem webu; není vydáván za právní stanovisko."
+        "Poptávky jsou technicky zpracovány prostřednictvím zabezpečeného serverového endpointu na Cloudflare Workers a doručeny na konfigurovanou firemní e-mailovou adresu."
       ]
     }
   ]
