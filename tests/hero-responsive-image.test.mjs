@@ -3,11 +3,17 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
 const renderer = fs.readFileSync(new URL('../src/components/sections/SectionRenderer.astro', import.meta.url), 'utf8');
+const css = fs.readFileSync(new URL('../src/styles/site.css', import.meta.url), 'utf8');
+const home = JSON.parse(fs.readFileSync(new URL('../content/pages/home.json', import.meta.url), 'utf8'));
 const hero = renderer.match(/\{t==='hero'[\s\S]*?(?=\n\{t==='trustBar')/)?.[0] || '';
 const assetRoot = new URL('../public/assets/images/', import.meta.url);
 const widths = [640, 1024, 1600];
+const originalVisualRule = 'width:100%;height:100%;object-fit:cover;filter:saturate(.76) contrast(1.02)';
 
 test('homepage hero delivers responsive modern sources with an eager JPEG fallback', () => {
+  const homeHero = home.sections.find((section) => section._template === 'hero');
+  assert.equal(homeHero?.backgroundImage, '/assets/images/hero-prague.jpg', 'homepage must keep the exact same hero photograph');
+
   assert.match(hero, /<picture\b/, 'hero must use picture for format selection');
   assert.match(hero, /type="image\/avif"/, 'hero must expose an AVIF source');
   assert.match(hero, /type="image\/webp"/, 'hero must expose a WebP source');
@@ -19,6 +25,9 @@ test('homepage hero delivers responsive modern sources with an eager JPEG fallba
   assert.match(hero, /alt="Pražské střechy a historické centrum"/, 'hero alt text must remain unchanged');
   assert.match(hero, /width="\d+"/, 'hero must expose intrinsic width');
   assert.match(hero, /height="\d+"/, 'hero must expose intrinsic height');
+
+  const imageRule = css.match(/\.hero-media img\{([^}]*)\}/)?.[1] || '';
+  assert.equal(imageRule, originalVisualRule, 'hero crop, filter and sizing must remain visually unchanged');
 
   for (const width of widths) {
     for (const ext of ['avif', 'webp', 'jpg']) {
