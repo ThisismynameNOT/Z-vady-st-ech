@@ -1,1 +1,2 @@
 :root{--muted:#635c53;--brass:#7b5636}
+.breadcrumbs a{text-decoration:underline;text-underline-offset:.18em;text-decoration-thickness:1px}
