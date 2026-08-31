@@ -46,11 +46,15 @@ const schema = {
     <link rel="canonical" href={canonical} />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <meta property="og:type" content="website" />
+    <meta property="og:site_name" content={site.siteName} />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:url" content={canonical} />
     {og && <meta property="og:image" content={og} />}
-    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:card" content={og ? 'summary_large_image' : 'summary'} />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    {og && <meta name="twitter:image" content={og} />}
     <script is:inline type="application/ld+json" set:html={JSON.stringify(schema)}></script>
     <slot name="head" />
   </head>
