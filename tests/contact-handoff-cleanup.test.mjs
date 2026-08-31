@@ -14,7 +14,7 @@ test('contact-page enquiry CTAs jump directly to the form', async () => {
   }
 
   assert.match(header, /class="nav-cta"\s+href=\{contactCtaHref\}/);
-  assert.match(header, /href=\{contactCtaHref\}>Odeslat poptávku/);
+  assert.match(header, /href=\{contactCtaHref\}[^>]*data-menu-close[^>]*>Odeslat poptávku/);
   assert.match(footer, /href=\{contactCtaHref\}>Poptat opravu/);
 });
 
