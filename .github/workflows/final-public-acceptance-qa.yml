@@ -1,0 +1,45 @@
+name: Final Public Acceptance QA
+
+on:
+  push:
+    branches: [qa/final-public-acceptance]
+
+permissions:
+  contents: read
+
+jobs:
+  acceptance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      QA_BASE_URL: https://zavady-strech-praha.iadamt-93.workers.dev
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - run: npm ci --no-audit --no-fund
+      - name: Install QA browser tooling
+        run: |
+          npm install --no-save --package-lock=false playwright@1.55.0 @axe-core/playwright@4.10.2 lighthouse@12.8.2
+          npx playwright install --with-deps chromium
+      - name: Run final public acceptance QA
+        id: qa
+        continue-on-error: true
+        run: node qa/final-public-acceptance.mjs
+      - name: Run corrected font and target-size QA
+        id: corrected
+        continue-on-error: true
+        run: node qa/corrected-font-targets.mjs
+      - name: Upload QA evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: final-public-acceptance-qa
+          path: qa-results
+          if-no-files-found: warn
+      - name: Enforce corrected QA result
+        if: always()
+        run: node qa/enforce-corrected-acceptance.mjs
