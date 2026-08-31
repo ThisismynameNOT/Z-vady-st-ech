@@ -51,5 +51,35 @@ jobs:
           }, null, 2));
           if (!width || !height) process.exit(1);
           NODE
+      - name: Install image tooling for QA generation
+        run: npm install --no-save --package-lock=false sharp@0.34.3
+      - name: Generate same-photo responsive candidates
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          const sharp = require('sharp');
+          const input = 'public/assets/images/hero-prague.jpg';
+          const outputDir = 'hero-derivatives';
+          const widths = [640, 1024, 1600];
+          fs.mkdirSync(outputDir, { recursive: true });
+          (async () => {
+            for (const width of widths) {
+              const height = Math.round(width * 1080 / 1920);
+              const base = sharp(input).resize({ width, height, fit: 'fill', kernel: sharp.kernel.lanczos3 });
+              await base.clone().avif({ quality: 70, effort: 6 }).toFile(`${outputDir}/hero-prague-${width}.avif`);
+              await base.clone().webp({ quality: 82, effort: 5 }).toFile(`${outputDir}/hero-prague-${width}.webp`);
+              await base.clone().jpeg({ quality: 82, mozjpeg: true }).toFile(`${outputDir}/hero-prague-${width}.jpg`);
+            }
+            for (const file of fs.readdirSync(outputDir).sort()) {
+              const meta = await sharp(`${outputDir}/${file}`).metadata();
+              console.log(JSON.stringify({ file, bytes: fs.statSync(`${outputDir}/${file}`).size, width: meta.width, height: meta.height, format: meta.format }));
+            }
+          })().catch((error) => { console.error(error); process.exit(1); });
+          NODE
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hero-derivatives
+          path: hero-derivatives
+          if-no-files-found: error
       - name: TDD regression suite
         run: npm test
