@@ -19,6 +19,15 @@ test('public copy has no internal design commentary', () => {
   }
 });
 
+test('public copy has no internal pre-launch notes', () => {
+  for (const text of [
+    'před ostrým spuštěním',
+    'provozní informace k formuláři',
+  ]) {
+    assert.ok(!all.includes(text), text);
+  }
+});
+
 test('no invented high-risk trust claims', () => {
   for (const text of [
     '24/7',
