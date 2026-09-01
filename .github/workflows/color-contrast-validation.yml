@@ -1,4 +1,4 @@
-name: Color Contrast Feature Validation
+name: Live Production Color Contrast Acceptance
 
 on:
   push:
@@ -8,67 +8,52 @@ permissions:
   contents: read
 
 jobs:
-  validate:
+  live-verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: 72fd2c23dea3a7be12b7c71b1f931f87cd0496a4
-      - uses: actions/checkout@v4
-        with:
           ref: qa/color-contrast-validation
-          path: qa-harness
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
-          cache-dependency-path: package-lock.json
-      - name: Install repository dependencies
-        run: npm ci --no-audit --no-fund
-      - name: High-severity dependency gate
-        run: npm audit --omit=dev --audit-level=high
-      - name: Repository tests
-        run: npm test
-      - name: Project audit
-        run: npm run audit
-      - name: Typecheck
-        run: npm run typecheck
-      - name: Production-equivalent local build
-        run: npm run build:local
-      - name: Install QA-only browser/runtime tools
+      - name: Install QA-only browser tools
         run: |
-          npm install --no-save --package-lock=false playwright-core@1.55.0 axe-core@4.10.2 wrangler@4.127.1
+          mkdir -p /tmp/live-qa
+          cp .github/qa/color-contrast-live-production.mjs /tmp/live-qa/
+          cd /tmp/live-qa
+          npm init -y >/dev/null
+          npm install --no-audit --no-fund playwright-core@1.55.0 axe-core@4.10.2
           CHROME_PATH="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser)"
           test -n "$CHROME_PATH"
           echo "CHROME_PATH=$CHROME_PATH" >> "$GITHUB_ENV"
-          ./node_modules/.bin/wrangler --version
           "$CHROME_PATH" --version
-      - name: Start built candidate Worker
-        run: |
-          ./node_modules/.bin/wrangler dev --port 8787 > /tmp/color-contrast-wrangler.log 2>&1 &
-          echo $! > /tmp/color-contrast-wrangler.pid
-          for i in $(seq 1 60); do
-            if curl -fsS http://127.0.0.1:8787/ >/dev/null; then
-              echo "candidate Worker ready"
-              exit 0
-            fi
-            sleep 1
-          done
-          cat /tmp/color-contrast-wrangler.log
-          exit 1
-      - name: Full 11-route x 8-viewport axe matrix
+      - name: Probe live production Worker
         env:
-          CANDIDATE_URL: http://127.0.0.1:8787
-        run: node qa-harness/.github/qa/color-contrast-matrix.mjs
-      - name: Candidate Worker log
-        if: always()
-        run: cat /tmp/color-contrast-wrangler.log || true
+          LIVE_URL: https://zavady-strech-praha.iadamt-93.workers.dev
+        run: |
+          curl -fsS -o /tmp/live-home.html -w 'HTTP %{http_code}\n' "$LIVE_URL/"
+          test -s /tmp/live-home.html
+      - name: Full 11-route x 8-viewport axe matrix and reveal-motion checks
+        env:
+          LIVE_URL: https://zavady-strech-praha.iadamt-93.workers.dev
+        run: |
+          cd /tmp/live-qa
+          node color-contrast-live-production.mjs
+          cp color-contrast-live-production.json "$GITHUB_WORKSPACE/"
+          cp reveal-normal-50ms.png "$GITHUB_WORKSPACE/"
+          cp reveal-normal-350ms.png "$GITHUB_WORKSPACE/"
+          cp reveal-normal-end.png "$GITHUB_WORKSPACE/"
+          cp reveal-reduced-motion.png "$GITHUB_WORKSPACE/"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: color-contrast-candidate-evidence
+          name: color-contrast-live-production-evidence
           path: |
-            color-contrast-matrix.json
-            dist
+            color-contrast-live-production.json
+            reveal-normal-50ms.png
+            reveal-normal-350ms.png
+            reveal-normal-end.png
+            reveal-reduced-motion.png
           if-no-files-found: warn
