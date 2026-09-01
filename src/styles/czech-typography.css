@@ -1,0 +1,8 @@
+/* Czech Latin Extended faces. Existing Latin subsets remain the default payload. */
+@font-face{font-family:Inter;src:url('/assets/fonts/inter-400-latin-ext.woff2') format('woff2');font-weight:400;font-style:normal;font-display:swap;unicode-range:U+0100-024F,U+1E00-1EFF}
+@font-face{font-family:Inter;src:url('/assets/fonts/inter-500-latin-ext.woff2') format('woff2');font-weight:500;font-style:normal;font-display:swap;unicode-range:U+0100-024F,U+1E00-1EFF}
+@font-face{font-family:Inter;src:url('/assets/fonts/inter-600-latin-ext.woff2') format('woff2');font-weight:600;font-style:normal;font-display:swap;unicode-range:U+0100-024F,U+1E00-1EFF}
+@font-face{font-family:Cormorant;src:url('/assets/fonts/cormorant-garamond-400-latin-ext.woff2') format('woff2');font-weight:400;font-style:normal;font-display:swap;unicode-range:U+0100-024F,U+1E00-1EFF}
+@font-face{font-family:Cormorant;src:url('/assets/fonts/cormorant-garamond-500-latin-ext.woff2') format('woff2');font-weight:500;font-style:normal;font-display:swap;unicode-range:U+0100-024F,U+1E00-1EFF}
+@font-face{font-family:Cormorant;src:url('/assets/fonts/cormorant-garamond-600-latin-ext.woff2') format('woff2');font-weight:600;font-style:normal;font-display:swap;unicode-range:U+0100-024F,U+1E00-1EFF}
+@font-face{font-family:Cormorant;src:url('/assets/fonts/cormorant-garamond-400-italic-latin-ext.woff2') format('woff2');font-weight:400;font-style:italic;font-display:swap;unicode-range:U+0100-024F,U+1E00-1EFF}
