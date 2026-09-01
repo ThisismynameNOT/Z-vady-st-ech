@@ -5,7 +5,7 @@ import { measureDomPaintCollision } from './czech-dom-paint-collision.mjs';
 const BASE=(process.env.TYPO_BASE_URL||'http://127.0.0.1:8788').replace(/\/$/,'');
 const TEXT='Řekněte nám, co se děje.';
 const browser=await chromium.launch({executablePath:process.env.CHROME_PATH,headless:true,args:['--no-sandbox','--disable-dev-shm-usage']});
-const report={baseUrl:BASE,text:TEXT,negative:null,positive:null,pass:false};
+const report={baseUrl:BASE,text:TEXT,negative:null,negativeWithFixedOverlay:null,positive:null,pass:false};
 try{
   const context=await browser.newContext({viewport:{width:390,height:900},deviceScaleFactor:1});
   const page=await context.newPage();
@@ -25,13 +25,28 @@ try{
   },TEXT);
   await page.evaluate(async(text)=>{await document.fonts.load('500 58px Cormorant',text);await document.fonts.ready;},TEXT);
   const fixtureMeta=await page.evaluate(()=>Object.fromEntries(['collision-negative','collision-positive'].map(id=>{const el=document.getElementById(id),s=getComputedStyle(el),r=el.getBoundingClientRect();return [id,{fontFamily:s.fontFamily,fontSize:s.fontSize,fontWeight:s.fontWeight,lineHeight:s.lineHeight,width:r.width,height:r.height,text:el.textContent}]})));
+
   report.negative={fixture:fixtureMeta['collision-negative'],measurement:await measureDomPaintCollision(page,'#collision-negative',{evidencePath:'calibration-negative.png'})};
+
+  await page.evaluate(()=>{
+    const overlay=document.createElement('div');
+    overlay.id='collision-calibration-overlay';
+    overlay.textContent='FIXED OVERLAY';
+    overlay.style.cssText='position:fixed;left:0;top:90px;width:390px;height:82px;background:#c9a276;color:#111;z-index:2147483647;font:600 14px/82px Arial;text-align:center;';
+    document.body.append(overlay);
+  });
+  report.negativeWithFixedOverlay={fixture:fixtureMeta['collision-negative'],measurement:await measureDomPaintCollision(page,'#collision-negative',{evidencePath:'calibration-negative-overlay.png'})};
+  await page.evaluate(()=>document.querySelector('#collision-calibration-overlay')?.remove());
+
   report.positive={fixture:fixtureMeta['collision-positive'],measurement:await measureDomPaintCollision(page,'#collision-positive',{evidencePath:'calibration-positive.png'})};
-  report.pass=report.negative.measurement.collisionPixels===0&&report.positive.measurement.collisionPixels>0;
+  report.pass=
+    report.negative.measurement.supported&&report.negative.measurement.collisionPixels===0&&
+    report.negativeWithFixedOverlay.measurement.supported&&report.negativeWithFixedOverlay.measurement.collisionPixels===0&&
+    report.positive.measurement.supported&&report.positive.measurement.collisionPixels>0;
   fs.writeFileSync('czech-dom-paint-calibration.json',JSON.stringify(report,null,2));
   console.log(JSON.stringify(report,null,2));
   if(!report.pass){
-    console.error(`DOM PAINT COLLISION CALIBRATION: FAIL negative=${report.negative.measurement.collisionPixels} positive=${report.positive.measurement.collisionPixels}`);
+    console.error(`DOM PAINT COLLISION CALIBRATION: FAIL negative=${report.negative.measurement.collisionPixels}/${report.negative.measurement.supported} overlay=${report.negativeWithFixedOverlay.measurement.collisionPixels}/${report.negativeWithFixedOverlay.measurement.supported} positive=${report.positive.measurement.collisionPixels}/${report.positive.measurement.supported}`);
     process.exitCode=1;
   }else console.log('DOM PAINT COLLISION CALIBRATION: PASS');
   await context.close();
