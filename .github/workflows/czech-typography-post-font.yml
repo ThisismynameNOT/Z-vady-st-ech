@@ -46,6 +46,12 @@ jobs:
         env:
           TYPO_BASE_URL: http://127.0.0.1:8788
         run: node .github/qa/czech-typography-browser-test.mjs
+      - name: Calibrate actual DOM collision detector
+        id: calibration
+        continue-on-error: true
+        env:
+          TYPO_BASE_URL: http://127.0.0.1:8788
+        run: node .github/qa/czech-dom-paint-calibration.mjs
       - name: Run corrected full 88-combination Czech typography audit
         id: site
         continue-on-error: true
@@ -65,14 +71,19 @@ jobs:
           name: czech-typography-candidate-audit
           if-no-files-found: warn
           path: |
+            czech-dom-paint-calibration.json
+            calibration-negative.png
+            calibration-positive.png
             czech-typography-site-audit.json
             czech-typography-geometry-audit.json
             candidate-screenshots/
       - name: Enforce corrected typography gates
         if: always()
         run: |
+          echo "calibration=${{ steps.calibration.outcome }}"
           echo "site=${{ steps.site.outcome }}"
           echo "geometry=${{ steps.geometry.outcome }}"
+          test "${{ steps.calibration.outcome }}" = success
           test "${{ steps.site.outcome }}" = success
           test "${{ steps.geometry.outcome }}" = success
       - name: Preserve Worker diagnostic state
