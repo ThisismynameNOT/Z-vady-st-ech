@@ -21,10 +21,21 @@ const addFailure=(kind,data)=>report.failures.push({kind,...data});
 
 function screenshotPlans(route){
   const map={
-    '/':[['home-hero','.hero'],['home-problem-heading','.problem'],['home-final-cta','.final-cta']],
-    '/kontakt/':[['contact-hero','.subhero'],['contact-form','#poptavka'],['contact-final-cta','.final-cta']],
-    '/firma/':[['firma-hero','.subhero'],['firma-story','.story']],
-    '/sluzby/':[['services-hero','.subhero'],['services-detail','.service-detail']],
+    '/':[
+      ['home-hero-h1','.hero h1'],
+      ['home-problem-h2','.split-head .h2'],
+      ['home-final-cta-h2','.final-cta h2'],
+    ],
+    '/kontakt/':[
+      ['contact-hero-h1','.subhero h1'],
+      ['contact-aside-h2','.contact-aside h2'],
+    ],
+    '/firma/':[
+      ['firma-story-h2','.story-copy h2'],
+    ],
+    '/sluzby/':[
+      ['services-detail-h2','.service-detail h2'],
+    ],
   };
   return map[route]||[];
 }
@@ -137,8 +148,8 @@ try{
         if((width===390||width===1440)&&screenshotPlans(route).length){
           const style=await page.addStyleTag({content:'.mobile-cta{visibility:hidden!important}'});
           for(const [name,selector] of screenshotPlans(route)){
-            const loc=page.locator(selector).first();if(!(await loc.count()))continue;
-            try{await loc.scrollIntoViewIfNeeded();await page.waitForTimeout(60);const path=`candidate-screenshots/${name}-${width}.png`;await loc.screenshot({path});report.screenshots.push({route,width,name,selector,path})}catch(error){report.screenshots.push({route,width,name,selector,error:String(error)})}
+            const loc=page.locator(selector).first();if(!(await loc.count())){report.screenshots.push({route,width,name,selector,error:'selector-not-found'});continue;}
+            try{await loc.scrollIntoViewIfNeeded();await page.waitForTimeout(60);const path=`candidate-screenshots/${name}-${width}.png`;await loc.screenshot({path,animations:'disabled'});report.screenshots.push({route,width,name,selector,path})}catch(error){report.screenshots.push({route,width,name,selector,error:String(error)})}
           }
           await style.evaluate(el=>el.remove());
         }
@@ -151,6 +162,8 @@ try{
 
 const missingTarget=[...TARGET].filter(ch=>!seenChars.has(ch));
 if(report.explicitFaceChecks.length!==FACE_PROBES.length)addFailure('explicit-face-check-count',{expected:FACE_PROBES.length,actual:report.explicitFaceChecks.length});
+const requiredScreenshotCount=14;
+if(report.screenshots.filter(x=>x.path).length!==requiredScreenshotCount)addFailure('required-screenshot-count',{expected:requiredScreenshotCount,actual:report.screenshots.filter(x=>x.path).length,results:report.screenshots});
 report.summary={matrixCombinations:88,matrixRows:report.rows.length,routeFailures:report.failures.filter(x=>x.kind==='route'||x.kind==='matrix-execution').length,actualNodeChecks:report.actualNodeChecks.length,explicitFaceChecks:report.explicitFaceChecks.length,targetCharacters:TARGET.length,siteCharactersSeen:[...seenChars].join(''),siteCharactersAbsent:missingTarget.join(''),fontUnmeasuredFailures:report.unmeasured.length,czechFallbackFailures:report.fallbacks.length,systemFallbackGlyphs:report.fallbacks.reduce((n,r)=>n+(r.systemGlyphs||0),0),clippingFailures:report.clipping.length,horizontalOverflowFailures:report.overflow.length,screenshots:report.screenshots.filter(x=>x.path).length,totalFailures:report.failures.length};
 fs.writeFileSync('czech-typography-site-audit.json',JSON.stringify(report,null,2));
 console.log(JSON.stringify(report.summary,null,2));
