@@ -1,0 +1,180 @@
+name: Final Live Public Acceptance
+
+on:
+  push:
+    branches: [qa/homepage-lcp-validation]
+
+permissions:
+  contents: read
+
+jobs:
+  live-public-acceptance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      LIVE_URL: https://zavady-strech-praha.iadamt-93.workers.dev/
+      EXPECTED_MAIN: 85930adafc9215a8ec076d99ab9173516173d0b1
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Verify production main commit
+        run: |
+          ACTUAL_MAIN="$(git ls-remote origin refs/heads/main | awk '{print $1}')"
+          echo "expectedMain=$EXPECTED_MAIN"
+          echo "actualMain=$ACTUAL_MAIN"
+          test "$ACTUAL_MAIN" = "$EXPECTED_MAIN"
+
+      - name: Install isolated QA browser tools
+        run: |
+          rm -rf /tmp/public-qa
+          mkdir -p /tmp/public-qa
+          cd /tmp/public-qa
+          npm init -y >/dev/null
+          npm install --no-audit --no-fund playwright-core@1.55.0 axe-core@4.10.2 lighthouse@12.8.2
+          CHROME_PATH="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser)"
+          test -n "$CHROME_PATH"
+          echo "CHROME_PATH=$CHROME_PATH" >> "$GITHUB_ENV"
+          "$CHROME_PATH" --version
+          ./node_modules/.bin/lighthouse --version
+
+      - name: Full 11-route x 8-viewport public matrix
+        run: |
+          cp .github/qa/final-public-acceptance.mjs /tmp/public-qa/acceptance.mjs
+          sed -i "s/a24021b17d945dfea36464b1bde78e523d429600/$EXPECTED_MAIN/g" /tmp/public-qa/acceptance.mjs
+          cd /tmp/public-qa
+          node -e "globalThis.innerHeight=900; import('./acceptance.mjs')"
+          cp public-acceptance.json "$GITHUB_WORKSPACE/public-acceptance.json"
+
+      - name: Homepage Lighthouse mobile x3
+        run: |
+          for run in 1 2 3; do
+            /tmp/public-qa/node_modules/.bin/lighthouse "$LIVE_URL" \
+              --output=json \
+              --output-path="lh-mobile-${run}.json" \
+              --chrome-path="$CHROME_PATH" \
+              --chrome-flags="--headless --no-sandbox --disable-dev-shm-usage" \
+              --only-categories=performance,accessibility,best-practices,seo \
+              --quiet
+          done
+
+      - name: Homepage Lighthouse desktop x1
+        run: |
+          /tmp/public-qa/node_modules/.bin/lighthouse "$LIVE_URL" \
+            --preset=desktop \
+            --output=json \
+            --output-path=lh-desktop.json \
+            --chrome-path="$CHROME_PATH" \
+            --chrome-flags="--headless --no-sandbox --disable-dev-shm-usage" \
+            --only-categories=performance,accessibility,best-practices,seo \
+            --quiet
+
+      - name: Build final live report
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          const functional = JSON.parse(fs.readFileSync('public-acceptance.json','utf8'));
+          const files = ['lh-mobile-1.json','lh-mobile-2.json','lh-mobile-3.json','lh-desktop.json'];
+          const auditIds = ['color-contrast','link-in-text-block','heading-order','label-content-name-mismatch'];
+          const ruleCount = id => functional.axe.violations[id] || 0;
+          function parse(file) {
+            const r = JSON.parse(fs.readFileSync(file,'utf8'));
+            const req = r.audits['network-requests']?.details?.items || [];
+            const responsive = req.find(x => /\/assets\/hero\/hero-prague-\d+\.(?:avif|webp|jpg)(?:\?|$)/.test(x.url));
+            const original = req.find(x => x.url.includes('/assets/images/hero-prague.jpg'));
+            const match = responsive?.url?.match(/hero-prague-(\d+)\.(avif|webp|jpg)(?:\?|$)/);
+            return {
+              file,
+              mode: file.includes('desktop') ? 'desktop' : 'mobile',
+              performance: Math.round((r.categories.performance.score ?? 0) * 100),
+              accessibility: Math.round((r.categories.accessibility.score ?? 0) * 100),
+              bestPractices: Math.round((r.categories['best-practices'].score ?? 0) * 100),
+              seo: Math.round((r.categories.seo.score ?? 0) * 100),
+              lcpMs: r.audits['largest-contentful-paint']?.numericValue ?? null,
+              heroUrl: responsive?.url ?? original?.url ?? null,
+              heroFormat: match?.[2] ?? (original ? 'jpg' : null),
+              heroCandidateWidth: match ? Number(match[1]) : (original ? 1920 : null),
+              heroTransferSize: (responsive || original)?.transferSize ?? null,
+              heroResourceSize: (responsive || original)?.resourceSize ?? null,
+              downloadedOriginalHero: Boolean(original),
+              accessibilityAudits: Object.fromEntries(auditIds.map(id => [id, {score:r.audits[id]?.score ?? null,title:r.audits[id]?.title ?? null}]))
+            };
+          }
+          const lighthouse = files.map(parse);
+          const mobile = lighthouse.filter(x => x.mode === 'mobile');
+          const desktop = lighthouse.find(x => x.mode === 'desktop');
+          const perf = mobile.map(x => x.performance).sort((a,b) => a-b);
+          const lcp = mobile.map(x => x.lcpMs).sort((a,b) => a-b);
+          const lhBlockers = [];
+          for (const row of lighthouse) {
+            if (row.accessibility !== 100) lhBlockers.push(`${row.file}: Accessibility ${row.accessibility}`);
+            if (row.bestPractices !== 100) lhBlockers.push(`${row.file}: Best Practices ${row.bestPractices}`);
+            if (row.seo !== 100) lhBlockers.push(`${row.file}: SEO ${row.seo}`);
+            for (const [id,a] of Object.entries(row.accessibilityAudits)) if (a.score === 0) lhBlockers.push(`${row.file}: ${id} failed`);
+          }
+          for (const row of mobile) {
+            if (!row.heroUrl?.endsWith('/assets/hero/hero-prague-1024.avif')) lhBlockers.push(`${row.file}: expected 1024 AVIF hero, got ${row.heroUrl}`);
+            if (row.downloadedOriginalHero) lhBlockers.push(`${row.file}: original JPEG also downloaded`);
+          }
+          const explicit = {
+            routeFailures: functional.summary.routeFailures,
+            interactionFailures: functional.summary.interactionFailures,
+            overflowFailures: functional.summary.overflowFailures,
+            fontFailures: functional.summary.fontFailures,
+            touchTargetFailures: functional.summary.touchTargetFailures,
+            redirectFailures: functional.summary.redirectFailures,
+            responsiveAvifHeroPass: Boolean(functional.hero.currentSrc?.includes('/assets/hero/hero-prague-')) && functional.hero.currentSrc?.endsWith('.avif'),
+            colorContrast: ruleCount('color-contrast'),
+            region: ruleCount('region'),
+            landmarkComplementaryIsTopLevel: ruleCount('landmark-complementary-is-top-level'),
+            linkInTextBlock: ruleCount('link-in-text-block'),
+            headingOrder: ruleCount('heading-order'),
+            accessibleNameMismatch: ruleCount('label-content-name-mismatch'),
+            allAxeViolationNodes: functional.summary.axeViolationNodes,
+          };
+          const releaseBlockers = [...functional.failures.map(f => `${f.kind}: ${f.name}`), ...lhBlockers];
+          const final = {
+            liveUrl: process.env.LIVE_URL,
+            productionMainCommit: process.env.EXPECTED_MAIN,
+            functionalSummary: functional.summary,
+            explicit,
+            axeViolationsByRule: functional.axe.violations,
+            lighthouse: {mobile, desktop, medianMobilePerformance: perf[1], medianMobileLcpMs: lcp[1]},
+            releaseBlockers,
+            finalPass: releaseBlockers.length === 0,
+          };
+          fs.writeFileSync('final-live-public-report.json', JSON.stringify(final,null,2));
+          console.log(JSON.stringify(final,null,2));
+          NODE
+
+      - name: Upload final live evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: final-live-public-acceptance
+          path: |
+            public-acceptance.json
+            final-live-public-report.json
+            lh-mobile-1.json
+            lh-mobile-2.json
+            lh-mobile-3.json
+            lh-desktop.json
+          if-no-files-found: warn
+
+      - name: Enforce final live public gate
+        if: always()
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          if (!fs.existsSync('final-live-public-report.json')) throw new Error('final live report was not generated');
+          const r = JSON.parse(fs.readFileSync('final-live-public-report.json','utf8'));
+          if (!r.finalPass) {
+            console.error('PUBLIC SITE ACCEPTANCE: FAIL');
+            console.error(r.releaseBlockers.join('\n'));
+            process.exit(1);
+          }
+          console.log('PUBLIC SITE ACCEPTANCE: PASS');
+          NODE
