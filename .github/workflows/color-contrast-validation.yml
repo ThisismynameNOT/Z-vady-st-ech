@@ -15,6 +15,10 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: 72fd2c23dea3a7be12b7c71b1f931f87cd0496a4
+      - uses: actions/checkout@v4
+        with:
+          ref: qa/color-contrast-validation
+          path: qa-harness
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -56,9 +60,7 @@ jobs:
       - name: Full 11-route x 8-viewport axe matrix
         env:
           CANDIDATE_URL: http://127.0.0.1:8787
-        run: |
-          cp "$GITHUB_WORKSPACE/.github/qa/color-contrast-matrix.mjs" /tmp/color-contrast-matrix.mjs
-          node /tmp/color-contrast-matrix.mjs
+        run: node qa-harness/.github/qa/color-contrast-matrix.mjs
       - name: Candidate Worker log
         if: always()
         run: cat /tmp/color-contrast-wrangler.log || true
