@@ -8,4 +8,9 @@
 @font-face{font-family:Cormorant;src:url('/assets/fonts/cormorant-garamond-400-italic-latin-ext.woff2') format('woff2');font-weight:400;font-style:italic;font-display:swap;unicode-range:U+0100-024F,U+1E00-1EFF}
 
 /* Measured multiline display fixes: keep the editorial scale, remove line-box collisions. */
-.hero h1,.subhero h1,.final-cta h2,.split-head .h2{line-height:1}
+.hero h1,.subhero h1,.split-head .h2{line-height:1}
+.final-cta h2{line-height:1.01}
+.service-detail h2{line-height:1.08}
+.case h2{line-height:.99}
+.contact-aside h2{line-height:1.01}
+.story-copy h2{line-height:.98}
