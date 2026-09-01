@@ -46,7 +46,7 @@ jobs:
         run: |
           cp .github/qa/final-public-acceptance.mjs /tmp/public-qa/acceptance.mjs
           cd /tmp/public-qa
-          node acceptance.mjs
+          node -e "globalThis.innerHeight=900; import('./acceptance.mjs')"
           cp public-acceptance.json "$GITHUB_WORKSPACE/public-acceptance.json"
 
       - name: Homepage Lighthouse mobile x3
