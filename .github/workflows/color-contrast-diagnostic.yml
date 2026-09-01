@@ -1,0 +1,49 @@
+name: Live Color Contrast Diagnostic
+
+on:
+  push:
+    branches: [qa/color-contrast-diagnostic]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      EXPECTED_MAIN: a24021b17d945dfea36464b1bde78e523d429600
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Verify production baseline commit
+        run: |
+          ACTUAL_MAIN="$(git ls-remote origin refs/heads/main | awk '{print $1}')"
+          echo "expectedMain=$EXPECTED_MAIN"
+          echo "actualMain=$ACTUAL_MAIN"
+          test "$ACTUAL_MAIN" = "$EXPECTED_MAIN"
+      - name: Install isolated diagnostic tools
+        run: |
+          rm -rf /tmp/contrast-qa
+          mkdir -p /tmp/contrast-qa
+          cd /tmp/contrast-qa
+          npm init -y >/dev/null
+          npm install --no-audit --no-fund playwright-core@1.55.0 axe-core@4.10.2
+          CHROME_PATH="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser)"
+          test -n "$CHROME_PATH"
+          echo "CHROME_PATH=$CHROME_PATH" >> "$GITHUB_ENV"
+          "$CHROME_PATH" --version
+      - name: Reproduce live color contrast failures with provenance
+        run: |
+          cp .github/qa/color-contrast-diagnostic.mjs /tmp/contrast-qa/diagnostic.mjs
+          cd /tmp/contrast-qa
+          node diagnostic.mjs
+          cp color-contrast-diagnostic.json "$GITHUB_WORKSPACE/color-contrast-diagnostic.json"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: live-color-contrast-diagnostic
+          path: color-contrast-diagnostic.json
+          if-no-files-found: error
