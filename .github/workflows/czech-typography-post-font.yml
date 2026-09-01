@@ -58,7 +58,7 @@ jobs:
         env:
           TYPO_BASE_URL: http://127.0.0.1:8788
         run: node .github/qa/czech-typography-site-audit-v2.mjs
-      - name: Run explicit 88-combination collision and overlap audit
+      - name: Run actual DOM 88-combination collision and overlap audit
         id: geometry
         continue-on-error: true
         env:
@@ -79,6 +79,7 @@ jobs:
             czech-typography-site-audit.json
             czech-typography-geometry-audit.json
             candidate-screenshots/
+            collision-evidence/
       - name: Enforce corrected typography gates
         if: always()
         run: |
