@@ -53,12 +53,14 @@ jobs:
           TYPO_BASE_URL: http://127.0.0.1:8788
         run: node .github/qa/czech-dom-paint-calibration.mjs
       - name: Run corrected full 88-combination Czech typography audit
+        if: steps.calibration.outcome == 'success'
         id: site
         continue-on-error: true
         env:
           TYPO_BASE_URL: http://127.0.0.1:8788
         run: node .github/qa/czech-typography-site-audit-v2.mjs
       - name: Run actual DOM 88-combination collision and overlap audit
+        if: steps.calibration.outcome == 'success'
         id: geometry
         continue-on-error: true
         env:
@@ -74,6 +76,8 @@ jobs:
             czech-dom-paint-calibration.json
             calibration-negative.png
             calibration-negative-line-*.png
+            calibration-negative-overlay.png
+            calibration-negative-overlay-line-*.png
             calibration-positive.png
             calibration-positive-line-*.png
             czech-typography-site-audit.json
