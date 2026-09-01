@@ -1,0 +1,59 @@
+name: Vendor Czech Font Subsets
+
+on:
+  push:
+    branches: [fix/czech-typography-rendering]
+
+permissions:
+  contents: write
+
+jobs:
+  vendor:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/czech-typography-rendering
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Copy pinned Latin Extended subsets
+        run: |
+          rm -rf /tmp/fontsource
+          mkdir -p /tmp/fontsource
+          cd /tmp/fontsource
+          npm init -y >/dev/null
+          npm install --no-audit --no-fund @fontsource/inter@5.3.0 @fontsource/cormorant-garamond@5.3.0
+          cd "$GITHUB_WORKSPACE"
+          cp /tmp/fontsource/node_modules/@fontsource/inter/files/inter-latin-ext-400-normal.woff2 public/assets/fonts/inter-400-latin-ext.woff2
+          cp /tmp/fontsource/node_modules/@fontsource/inter/files/inter-latin-ext-500-normal.woff2 public/assets/fonts/inter-500-latin-ext.woff2
+          cp /tmp/fontsource/node_modules/@fontsource/inter/files/inter-latin-ext-600-normal.woff2 public/assets/fonts/inter-600-latin-ext.woff2
+          cp /tmp/fontsource/node_modules/@fontsource/cormorant-garamond/files/cormorant-garamond-latin-ext-400-normal.woff2 public/assets/fonts/cormorant-garamond-400-latin-ext.woff2
+          cp /tmp/fontsource/node_modules/@fontsource/cormorant-garamond/files/cormorant-garamond-latin-ext-500-normal.woff2 public/assets/fonts/cormorant-garamond-500-latin-ext.woff2
+          cp /tmp/fontsource/node_modules/@fontsource/cormorant-garamond/files/cormorant-garamond-latin-ext-600-normal.woff2 public/assets/fonts/cormorant-garamond-600-latin-ext.woff2
+          cp /tmp/fontsource/node_modules/@fontsource/cormorant-garamond/files/cormorant-garamond-latin-ext-400-italic.woff2 public/assets/fonts/cormorant-garamond-400-italic-latin-ext.woff2
+          ls -lh public/assets/fonts/*latin-ext.woff2
+      - name: Record provenance
+        run: |
+          cat > public/assets/fonts/PROVENANCE.md <<'EOF'
+          # Self-hosted font provenance
+
+          Czech Latin Extended subsets added for the public site are copied verbatim from Fontsource 5.3.0 packages and served locally. There is no runtime Google Fonts or CDN dependency.
+
+          - `@fontsource/inter@5.3.0` — Inter, upstream font version v4.1, SIL Open Font License 1.1.
+          - `@fontsource/cormorant-garamond@5.3.0` — Cormorant Garamond, upstream font version v21, SIL Open Font License 1.1.
+
+          Added subsets cover the existing application faces only: Inter 400/500/600 normal and Cormorant Garamond 400/500/600 normal plus 400 italic. Existing Latin WOFF2 files remain in place; these additional files supply Latin Extended Czech glyphs.
+          EOF
+      - name: Commit vendored assets
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add public/assets/fonts
+          if git diff --cached --quiet; then
+            echo 'No font asset changes to commit.'
+            exit 0
+          fi
+          git commit -m 'fix: add Czech Latin Extended font subsets'
+          git push origin HEAD:fix/czech-typography-rendering
