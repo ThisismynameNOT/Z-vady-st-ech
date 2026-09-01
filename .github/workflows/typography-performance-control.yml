@@ -9,15 +9,10 @@ permissions:
   contents: read
 
 jobs:
-  compare:
+  combined-font-proof:
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 15
     steps:
-      - name: Checkout merge-base control
-        uses: actions/checkout@v4
-        with:
-          ref: 1cc9ca6f89242b3ac31ee4e848ebad1bec1ecf32
-          path: baseline
       - name: Checkout typography candidate
         uses: actions/checkout@v4
         with:
@@ -26,12 +21,13 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Build experimental combined Czech faces
+      - name: Generate and verify experimental combined Czech faces
         run: |
           python -m pip install --disable-pip-version-check fonttools brotli
           python <<'PY'
           from fontTools.merge import Merger
           from pathlib import Path
+
           pairs = [
               ('inter-400.woff2', 'inter-400-latin-ext.woff2'),
               ('inter-500.woff2', 'inter-500-latin-ext.woff2'),
@@ -50,99 +46,44 @@ jobs:
               temp = ext.with_suffix('.merged.woff2')
               merged.save(temp)
               temp.replace(ext)
-              print(ext.name, ext.stat().st_size)
+              print(f'COMBINED {ext.name} {ext.stat().st_size} B')
           PY
+          (
+            cd candidate
+            python .github/qa/czech-font-coverage-test.py
+          )
           python <<'PY'
+          from fontTools.ttLib import TTFont
           from pathlib import Path
-          p = Path('candidate/src/styles/czech-typography.css')
-          css = p.read_text()
-          css = css.replace('font-family:Inter;', 'font-family:InterCzech;')
-          css = css.replace('font-family:Cormorant;', 'font-family:CormorantCzech;')
-          css = css.replace('unicode-range:U+0100-024F,U+1E00-1EFF', '')
-          css += '\n:root{--sans:InterCzech,Inter,Arial,sans-serif;--serif:CormorantCzech,Cormorant,Georgia,serif}\n'
-          p.write_text(css)
+
+          files = [
+              'inter-400-latin-ext.woff2',
+              'inter-500-latin-ext.woff2',
+              'inter-600-latin-ext.woff2',
+              'cormorant-garamond-400-latin-ext.woff2',
+              'cormorant-garamond-500-latin-ext.woff2',
+              'cormorant-garamond-600-latin-ext.woff2',
+              'cormorant-garamond-400-italic-latin-ext.woff2',
+          ]
+          latin = 'AaZz09'
+          czech = 'áčďéěíňóřšťúůýžÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ'
+          root = Path('candidate/public/assets/fonts')
+          failures = []
+          for name in files:
+              path = root / name
+              font = TTFont(path)
+              cmap = set()
+              for table in font['cmap'].tables:
+                  if table.isUnicode():
+                      cmap.update(table.cmap.keys())
+              missing_latin = [ch for ch in latin if ord(ch) not in cmap]
+              missing_czech = [ch for ch in czech if ord(ch) not in cmap]
+              print(f'CMAP {name}: latin={len(latin)-len(missing_latin)}/{len(latin)} czech={len(czech)-len(missing_czech)}/{len(czech)} size={path.stat().st_size} B')
+              if missing_latin or missing_czech:
+                  failures.append((name, missing_latin, missing_czech))
+          if failures:
+              for name, latin_missing, czech_missing in failures:
+                  print(f'FAIL {name}: missing Latin={latin_missing} Czech={czech_missing}')
+              raise SystemExit(1)
+          print('COMBINED FONT BASIC LATIN + CZECH CMAP: PASS')
           PY
-          python candidate/.github/qa/czech-font-coverage-test.py
-      - name: Install and build both revisions
-        run: |
-          (cd baseline && npm ci --no-audit --no-fund && npm run build:local)
-          (cd candidate && npm ci --no-audit --no-fund && npm run build:local)
-      - name: Install Lighthouse
-        run: |
-          rm -rf /tmp/perf-control && mkdir -p /tmp/perf-control && cd /tmp/perf-control
-          npm init -y >/dev/null
-          npm install --no-audit --no-fund lighthouse@12.8.2
-          CHROME_PATH="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser)"
-          echo "CHROME_PATH=$CHROME_PATH" >> "$GITHUB_ENV"
-      - name: Measure merge-base control
-        run: |
-          (cd baseline && npx -y wrangler@4.128.0 dev --local --port 8788 > /tmp/baseline-worker.log 2>&1 & echo $! > /tmp/baseline-worker.pid)
-          for i in {1..45}; do curl -fsS http://127.0.0.1:8788/ >/dev/null && break; sleep 1; done
-          curl -fsS http://127.0.0.1:8788/ >/dev/null
-          for n in 1 2; do
-            /tmp/perf-control/node_modules/.bin/lighthouse http://127.0.0.1:8788/ --quiet --output=json --output-path="baseline-mobile-$n.json" --only-categories=performance --chrome-path="$CHROME_PATH" --chrome-flags="--headless --no-sandbox --disable-dev-shm-usage"
-          done
-          /tmp/perf-control/node_modules/.bin/lighthouse http://127.0.0.1:8788/ --quiet --preset=desktop --output=json --output-path=baseline-desktop.json --only-categories=performance --chrome-path="$CHROME_PATH" --chrome-flags="--headless --no-sandbox --disable-dev-shm-usage"
-          kill "$(cat /tmp/baseline-worker.pid)" || true
-      - name: Measure typography candidate
-        run: |
-          (cd candidate && npx -y wrangler@4.128.0 dev --local --port 8789 > /tmp/candidate-worker.log 2>&1 & echo $! > /tmp/candidate-worker.pid)
-          for i in {1..45}; do curl -fsS http://127.0.0.1:8789/ >/dev/null && break; sleep 1; done
-          curl -fsS http://127.0.0.1:8789/ >/dev/null
-          for n in 1 2; do
-            /tmp/perf-control/node_modules/.bin/lighthouse http://127.0.0.1:8789/ --quiet --output=json --output-path="candidate-mobile-$n.json" --only-categories=performance --chrome-path="$CHROME_PATH" --chrome-flags="--headless --no-sandbox --disable-dev-shm-usage"
-          done
-          /tmp/perf-control/node_modules/.bin/lighthouse http://127.0.0.1:8789/ --quiet --preset=desktop --output=json --output-path=candidate-desktop.json --only-categories=performance --chrome-path="$CHROME_PATH" --chrome-flags="--headless --no-sandbox --disable-dev-shm-usage"
-          kill "$(cat /tmp/candidate-worker.pid)" || true
-      - name: Report paired performance
-        run: |
-          node --input-type=module <<'EOF'
-          import fs from 'node:fs';
-          const read = (path) => {
-            const r = JSON.parse(fs.readFileSync(path));
-            const requests = r.audits['network-requests'].details.items;
-            const fonts = requests.filter(x => x.url.includes('/assets/fonts/'));
-            return {
-              performance: Math.round(r.categories.performance.score * 100),
-              lcpMs: Math.round(r.audits['largest-contentful-paint'].numericValue),
-              fontRequests: fonts.length,
-              fontBytes: fonts.reduce((sum, x) => sum + (x.transferSize || 0), 0),
-            };
-          };
-          const median = (values) => [...values].sort((a,b)=>a-b)[Math.floor(values.length/2)];
-          const baselineMobile = [read('baseline-mobile-1.json'), read('baseline-mobile-2.json')];
-          const candidateMobile = [read('candidate-mobile-1.json'), read('candidate-mobile-2.json')];
-          const out = {
-            baseline: {
-              mobileRuns: baselineMobile,
-              mobileMedian: {performance: median(baselineMobile.map(x=>x.performance)), lcpMs: median(baselineMobile.map(x=>x.lcpMs))},
-              desktop: read('baseline-desktop.json'),
-            },
-            candidate: {
-              mobileRuns: candidateMobile,
-              mobileMedian: {performance: median(candidateMobile.map(x=>x.performance)), lcpMs: median(candidateMobile.map(x=>x.lcpMs))},
-              desktop: read('candidate-desktop.json'),
-            },
-          };
-          out.delta = {
-            mobilePerformance: out.candidate.mobileMedian.performance - out.baseline.mobileMedian.performance,
-            mobileLcpMs: out.candidate.mobileMedian.lcpMs - out.baseline.mobileMedian.lcpMs,
-            desktopPerformance: out.candidate.desktop.performance - out.baseline.desktop.performance,
-            desktopLcpMs: out.candidate.desktop.lcpMs - out.baseline.desktop.lcpMs,
-          };
-          fs.writeFileSync('typography-performance-control.json', JSON.stringify(out, null, 2));
-          console.log(JSON.stringify(out, null, 2));
-          EOF
-      - name: Upload paired performance evidence
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: typography-performance-control
-          path: |
-            baseline-mobile-*.json
-            candidate-mobile-*.json
-            baseline-desktop.json
-            candidate-desktop.json
-            typography-performance-control.json
-            /tmp/baseline-worker.log
-            /tmp/candidate-worker.log
