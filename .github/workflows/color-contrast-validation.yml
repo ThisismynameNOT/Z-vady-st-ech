@@ -8,13 +8,13 @@ permissions:
   contents: read
 
 jobs:
-  red:
+  green:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: 83d58aa35ec1a28cb668ed2e292430a86bfede44
+          ref: 72fd2c23dea3a7be12b7c71b1f931f87cd0496a4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
