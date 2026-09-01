@@ -1,0 +1,50 @@
+name: Landmark Cleanup Validation
+
+on:
+  push:
+    branches: [qa/landmark-cleanup-validation]
+
+permissions:
+  contents: read
+
+jobs:
+  live-red:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install QA-only browser tools
+        run: |
+          mkdir -p /tmp/landmark-qa
+          cp .github/qa/landmark-live-red.mjs /tmp/landmark-qa/
+          cd /tmp/landmark-qa
+          npm init -y >/dev/null
+          npm install --no-audit --no-fund playwright-core@1.55.0 axe-core@4.10.2
+          CHROME_PATH="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser)"
+          test -n "$CHROME_PATH"
+          echo "CHROME_PATH=$CHROME_PATH" >> "$GITHUB_ENV"
+          "$CHROME_PATH" --version
+      - name: Reproduce live production landmark findings
+        env:
+          LIVE_URL: https://zavady-strech-praha.iadamt-93.workers.dev
+        run: |
+          cd /tmp/landmark-qa
+          set +e
+          node landmark-live-red.mjs
+          code=$?
+          cp landmark-live-red.json "$GITHUB_WORKSPACE/"
+          if [ "$code" -ne 1 ]; then
+            echo "Expected intentional RED exit code 1, got $code"
+            exit 2
+          fi
+          echo "RED reproduced exactly; intentionally failing this job."
+          exit 1
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: landmark-live-red-evidence
+          path: landmark-live-red.json
+          if-no-files-found: error
