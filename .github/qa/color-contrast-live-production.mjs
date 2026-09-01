@@ -202,16 +202,22 @@ async function probeReducedMotion() {
     result.after50ms = await sampleProbe(page);
     await page.screenshot({ path: 'reveal-reduced-motion.png', fullPage: false });
 
-    const hiddenTop = result.hidden?.top ?? NaN;
-    const immediateTop = result.immediate?.top ?? NaN;
-    const afterTop = result.after50ms?.top ?? NaN;
     const transitionDuration = result.hidden?.transitionDuration || '';
     const noTransition = transitionDuration.split(',').every(value => Number.parseFloat(value) === 0);
-    const jumpedToEndImmediately = Math.abs(immediateTop - 300) <= 1 && Math.abs(afterTop - 300) <= 1;
-    const hiddenHadOffset = hiddenTop >= 316 && hiddenTop <= 320;
-    const opacityImmediate = result.immediate?.opacity === '1' && result.after50ms?.opacity === '1';
+    const staticBeforeToggle =
+      Math.abs((result.hidden?.top ?? NaN) - 300) <= 1 &&
+      result.hidden?.opacity === '1' &&
+      result.hidden?.transform === 'none';
+    const staticAfterToggle =
+      Math.abs((result.immediate?.top ?? NaN) - 300) <= 1 &&
+      Math.abs((result.after50ms?.top ?? NaN) - 300) <= 1 &&
+      result.immediate?.opacity === '1' &&
+      result.after50ms?.opacity === '1' &&
+      result.immediate?.transform === 'none' &&
+      result.after50ms?.transform === 'none';
 
-    result.pass = result.status === 200 && noTransition && jumpedToEndImmediately && hiddenHadOffset && opacityImmediate;
+    result.behavior = 'reveal is fully visible and untransformed with no transition when reduced motion is requested';
+    result.pass = result.status === 200 && noTransition && staticBeforeToggle && staticAfterToggle;
     return result;
   } finally {
     await page.close();
