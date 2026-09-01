@@ -29,6 +29,11 @@ test('Czech Latin Extended font subsets are local, declared, and documented', ()
   assert.match(provenance, /served locally/i);
 });
 
-test('measured Czech display collisions use a tight non-overlapping line height', () => {
-  assert.match(css, /\.hero h1,\.subhero h1,\.final-cta h2,\.split-head \.h2\{line-height:1\}/);
+test('measured Czech display collisions keep the proven selector line heights', () => {
+  assert.match(css, /\.hero h1,\.subhero h1,\.split-head \.h2\{line-height:1\}/);
+  assert.match(css, /\.final-cta h2\{line-height:1\.01\}/);
+  assert.match(css, /\.service-detail h2\{line-height:1\.08\}/);
+  assert.match(css, /\.case h2\{line-height:1\}/);
+  assert.match(css, /\.contact-aside h2\{line-height:1\.01\}/);
+  assert.match(css, /\.story-copy h2\{line-height:\.98\}/);
 });
