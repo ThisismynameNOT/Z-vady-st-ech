@@ -34,7 +34,7 @@ jobs:
         run: npm run build:local
       - name: Start production-equivalent local Worker
         run: |
-          npx wrangler dev --local --port 8788 > /tmp/wrangler.log 2>&1 &
+          npx -y wrangler@4.128.0 dev --local --port 8788 > /tmp/wrangler.log 2>&1 &
           echo $! > /tmp/wrangler.pid
           for i in {1..40}; do
             if curl -fsS http://127.0.0.1:8788/ >/dev/null; then exit 0; fi
