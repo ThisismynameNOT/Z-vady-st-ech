@@ -11,7 +11,7 @@ permissions:
 jobs:
   post-font:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -42,14 +42,23 @@ jobs:
           done
           cat /tmp/wrangler.log
           exit 1
-      - name: Re-measure rendered fonts and multiline geometry after font fix
-        id: browser
-        continue-on-error: true
+      - name: Re-measure focused rendered fonts and multiline geometry
         env:
           TYPO_BASE_URL: http://127.0.0.1:8788
         run: node .github/qa/czech-typography-browser-test.mjs
-      - name: Preserve post-font diagnostic state
+      - name: Run full 88-combination Czech typography audit
+        env:
+          TYPO_BASE_URL: http://127.0.0.1:8788
+        run: node .github/qa/czech-typography-site-audit.mjs
+      - name: Upload typography audit evidence
         if: always()
-        run: |
-          echo "browser_outcome=${{ steps.browser.outcome }}"
-          cat /tmp/wrangler.log | tail -80 || true
+        uses: actions/upload-artifact@v4
+        with:
+          name: czech-typography-candidate-audit
+          if-no-files-found: warn
+          path: |
+            czech-typography-site-audit.json
+            candidate-screenshots/
+      - name: Preserve Worker diagnostic state
+        if: always()
+        run: cat /tmp/wrangler.log | tail -80 || true
