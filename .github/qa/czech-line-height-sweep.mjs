@@ -5,28 +5,13 @@ import { measureDomPaintCollision } from './czech-dom-paint-collision.mjs';
 const BASE=(process.env.TYPO_BASE_URL||'http://127.0.0.1:8788').replace(/\/$/,'');
 const GROUPS=[
   {
-    name:'service-detail', selector:'.service-detail h2', values:[1,1.01,1.02,1.03,1.04,1.05,1.06],
+    name:'service-detail', selector:'.service-detail h2', values:[1.06,1.065,1.07,1.075,1.08,1.085,1.09],
+    cases:[['/sluzby/',320,'Opravy a údržba střech']],
+  },
+  {
+    name:'final-cta', selector:'.final-cta h2', values:[1.005,1.01,1.015],
     cases:[
-      ['/sluzby/',320,'Opravy a údržba střech'],['/sluzby/',375,'Opravy a údržba střech'],['/sluzby/',390,'Opravy a údržba střech'],['/sluzby/',1024,'Opravy a údržba střech'],
-      ['/sluzby/',320,'Klempířské a detailní práce'],['/sluzby/',375,'Klempířské a detailní práce'],
-    ],
-  },
-  {
-    name:'realizace-case', selector:'.case h2', values:[.9,.91,.92,.93,.94,.95,.96,.97,.98,.99,1],
-    cases:[['/realizace/',320,'Gymnázium prof. Jana Patočky'],['/realizace/',1024,'Gymnázium prof. Jana Patočky'],['/realizace/',320,'Hybernská 2/997']],
-  },
-  {
-    name:'contact-aside', selector:'.contact-aside h2', values:[.95,.96,.97,.98,.99,1,1.01,1.02],
-    cases:[['/kontakt/',390,'Telefon je nejrychlejší cesta, když potřebujete popsat situaci.'],['/kontakt/',430,'Telefon je nejrychlejší cesta, když potřebujete popsat situaci.'],['/kontakt/',1440,'Telefon je nejrychlejší cesta, když potřebujete popsat situaci.'],['/kontakt/',1920,'Telefon je nejrychlejší cesta, když potřebujete popsat situaci.']],
-  },
-  {
-    name:'story-copy', selector:'.story-copy h2', values:[.92,.93,.94,.95,.96,.97,.98,.99,1,1.01],
-    cases:[['/firma/',430,'Firma od roku 2019. Práce dohledatelná veřejně.'],['/firma/',1440,'Firma od roku 2019. Práce dohledatelná veřejně.'],['/firma/',1920,'Firma od roku 2019. Práce dohledatelná veřejně.']],
-  },
-  {
-    name:'final-cta', selector:'.final-cta h2', values:[1,1.005,1.01,1.015,1.02,1.025,1.03,1.04],
-    cases:[
-      ['/realizace/',1024,'Máte podobný problém? Pošlete nám ho.'],
+      ['/realizace/',1024,'Máte podobný problém?Pošlete nám ho.'],
       ['/realizace/gymnazium-jana-patocky/',1440,'Máte podobný problém?'],['/realizace/gymnazium-jana-patocky/',1920,'Máte podobný problém?'],
       ['/realizace/hybernska-2-997/',1440,'Máte podobný problém?'],['/realizace/hybernska-2-997/',1920,'Máte podobný problém?'],
       ['/realizace/narodni-muzeum/',1440,'Máte podobný problém?'],['/realizace/narodni-muzeum/',1920,'Máte podobný problém?'],
