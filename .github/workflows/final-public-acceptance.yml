@@ -21,11 +21,17 @@ jobs:
       - name: Install project
         run: npm ci --no-audit --no-fund
       - name: Run unit tests
-        run: npm test | tee npm-test.log
+        run: |
+          set -o pipefail
+          npm test | tee npm-test.log
       - name: Run project audit
-        run: npm run audit | tee project-audit.log
+        run: |
+          set -o pipefail
+          npm run audit | tee project-audit.log
       - name: Run Astro typecheck
-        run: npm run typecheck | tee typecheck.log
+        run: |
+          set -o pipefail
+          npm run typecheck | tee typecheck.log
       - name: High severity dependency gate
         run: |
           set +e
@@ -35,7 +41,9 @@ jobs:
           node -e "const r=require('./dependency-audit.json');console.log(JSON.stringify(r.metadata?.vulnerabilities||{},null,2))"
           test "$rc" -eq 0
       - name: Build production-equivalent candidate
-        run: npm run build:local | tee build-local.log
+        run: |
+          set -o pipefail
+          npm run build:local | tee build-local.log
       - name: Install browser QA tools
         run: |
           rm -rf /tmp/final-qa && mkdir -p /tmp/final-qa && cd /tmp/final-qa
