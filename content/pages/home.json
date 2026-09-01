@@ -8,9 +8,8 @@
   "noIndex": false,
   "sections": [
     {
-      "_template": "hero",
       "eyebrow": "Praha · opravy střech",
-      "heading": "Střecha musí|obstát v čase.",
+      "heading": "Střecha musí|obstát v čase · QA",
       "description": "Zatékání, poškozená krytina, oplechování a údržba. Pro SVJ, bytové i rodinné domy, historické, veřejné a komerční objekty v Praze.",
       "primaryButtonLabel": "Zavolat +420 732 282 409",
       "primaryButtonUrl": "tel:+420732282409",
@@ -21,10 +20,10 @@
         "Národní muzeum",
         "Pražská tržnice",
         "Gymnázium J. Patočky"
-      ]
+      ],
+      "_template": "hero"
     },
     {
-      "_template": "trustBar",
       "items": [
         {
           "value": "47",
@@ -38,10 +37,10 @@
           "value": "Praha",
           "label": "hlavní oblast působení"
         }
-      ]
+      ],
+      "_template": "trustBar"
     },
     {
-      "_template": "problemBand",
       "eyebrow": "Potřebujete řešit střechu?",
       "heading": "Řekněte nám, co se děje.",
       "description": "Stačí adresa, typ objektu a stručný popis problému. Když je situace akutní, volejte přímo.",
@@ -64,17 +63,17 @@
           "label": "Otevřít reference →",
           "url": "/reference/"
         }
-      ]
+      ],
+      "_template": "problemBand"
     },
     {
-      "_template": "featuredProjects",
       "eyebrow": "Vybrané realizace",
       "heading": "Práce na objektech, které Praha zná.",
       "description": "Veřejně dohledatelné zakázky. Detailní rozsah a odkazy jsou na samostatné stránce.",
-      "limit": 3
+      "limit": 3,
+      "_template": "featuredProjects"
     },
     {
-      "_template": "processSteps",
       "eyebrow": "Tři kroky",
       "heading": "Od problému k domluvě.",
       "theme": "forest",
@@ -91,16 +90,17 @@
           "title": "Realizace",
           "body": "Rozsah práce vychází ze skutečného stavu střechy a dohody."
         }
-      ]
+      ],
+      "_template": "processSteps"
     },
     {
-      "_template": "contactCta",
       "eyebrow": "Kontakt",
       "heading": "Řešíte střechu?|Zavolejte.",
       "primaryLabel": "Zavolat +420 732 282 409",
       "primaryUrl": "tel:+420732282409",
       "secondaryLabel": "Poptat opravu",
-      "secondaryUrl": "/kontakt/"
+      "secondaryUrl": "/kontakt/",
+      "_template": "contactCta"
     }
   ]
 }
