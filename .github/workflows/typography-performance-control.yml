@@ -77,15 +77,20 @@ jobs:
           echo "CHROME_PATH=$CHROME_PATH" >> "$GITHUB_ENV"
       - name: Start both production-equivalent local Workers
         run: |
-          (cd baseline && npx -y wrangler@4.128.0 dev --local --port 8788 > /tmp/baseline-worker.log 2>&1 & echo $! > /tmp/baseline-worker.pid)
-          (cd candidate && npx -y wrangler@4.128.0 dev --local --port 8789 > /tmp/candidate-worker.log 2>&1 & echo $! > /tmp/candidate-worker.pid)
+          (cd baseline && npx -y wrangler@4.128.0 dev --local --port 8788 --inspector-port 9230 > /tmp/baseline-worker.log 2>&1 & echo $! > /tmp/baseline-worker.pid)
+          (cd candidate && npx -y wrangler@4.128.0 dev --local --port 8789 --inspector-port 9231 > /tmp/candidate-worker.log 2>&1 & echo $! > /tmp/candidate-worker.pid)
           for port in 8788 8789; do
             ready=0
             for i in {1..45}; do
               if curl -fsS "http://127.0.0.1:$port/" >/dev/null; then ready=1; break; fi
               sleep 1
             done
-            test "$ready" = 1
+            if [ "$ready" != 1 ]; then
+              echo "Worker on port $port did not start"
+              cat /tmp/baseline-worker.log || true
+              cat /tmp/candidate-worker.log || true
+              exit 1
+            fi
           done
       - name: Run alternating mobile samples and paired desktop samples
         run: |
