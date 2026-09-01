@@ -9,9 +9,9 @@ permissions:
   contents: read
 
 jobs:
-  combined-font-proof:
+  combined-font-rendering:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 35
     steps:
       - name: Checkout typography candidate
         uses: actions/checkout@v4
@@ -21,9 +21,18 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Generate and verify experimental combined Czech faces
+      - name: Install project and QA tools
         run: |
-          python -m pip install --disable-pip-version-check fonttools brotli
+          (cd candidate && npm ci --no-audit --no-fund)
+          python -m pip install --disable-pip-version-check --quiet fonttools brotli
+          rm -rf /tmp/typo-test && mkdir -p /tmp/typo-test && cd /tmp/typo-test
+          npm init -y >/dev/null
+          npm install --no-audit --no-fund playwright-core@1.55.0 pngjs@7.0.0
+          ln -s /tmp/typo-test/node_modules "$GITHUB_WORKSPACE/candidate/.github/qa/node_modules"
+          CHROME_PATH="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser)"
+          echo "CHROME_PATH=$CHROME_PATH" >> "$GITHUB_ENV"
+      - name: Generate experimental combined Czech faces
+        run: |
           python <<'PY'
           from fontTools.merge import Merger
           from pathlib import Path
@@ -48,42 +57,71 @@ jobs:
               temp.replace(ext)
               print(f'COMBINED {ext.name} {ext.stat().st_size} B')
           PY
+          python <<'PY'
+          from pathlib import Path
+          p = Path('candidate/src/styles/czech-typography.css')
+          css = p.read_text()
+          css = css.replace('font-family:Inter;', 'font-family:InterCzech;')
+          css = css.replace('font-family:Cormorant;', 'font-family:CormorantCzech;')
+          css = css.replace('unicode-range:U+0100-024F,U+1E00-1EFF', '')
+          css += '\n:root{--sans:InterCzech,Inter,Arial,sans-serif;--serif:CormorantCzech,Cormorant,Georgia,serif}\n'
+          p.write_text(css)
+
+          # The permanent audit probes the production family names. For this
+          # throwaway experiment only, point the seven explicit probes at the
+          # experimental family aliases without changing the retained QA file.
+          audit = Path('candidate/.github/qa/czech-typography-site-audit-v2.mjs')
+          text = audit.read_text()
+          text = text.replace("{family:'Inter',", "{family:'InterCzech',")
+          text = text.replace("{family:'Cormorant',", "{family:'CormorantCzech',")
+          audit.write_text(text)
+          PY
           (
             cd candidate
             python .github/qa/czech-font-coverage-test.py
           )
-          python <<'PY'
-          from fontTools.ttLib import TTFont
-          from pathlib import Path
-
-          files = [
-              'inter-400-latin-ext.woff2',
-              'inter-500-latin-ext.woff2',
-              'inter-600-latin-ext.woff2',
-              'cormorant-garamond-400-latin-ext.woff2',
-              'cormorant-garamond-500-latin-ext.woff2',
-              'cormorant-garamond-600-latin-ext.woff2',
-              'cormorant-garamond-400-italic-latin-ext.woff2',
-          ]
-          latin = 'AaZz09'
-          czech = 'áčďéěíňóřšťúůýžÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ'
-          root = Path('candidate/public/assets/fonts')
-          failures = []
-          for name in files:
-              path = root / name
-              font = TTFont(path)
-              cmap = set()
-              for table in font['cmap'].tables:
-                  if table.isUnicode():
-                      cmap.update(table.cmap.keys())
-              missing_latin = [ch for ch in latin if ord(ch) not in cmap]
-              missing_czech = [ch for ch in czech if ord(ch) not in cmap]
-              print(f'CMAP {name}: latin={len(latin)-len(missing_latin)}/{len(latin)} czech={len(czech)-len(missing_czech)}/{len(czech)} size={path.stat().st_size} B')
-              if missing_latin or missing_czech:
-                  failures.append((name, missing_latin, missing_czech))
-          if failures:
-              for name, latin_missing, czech_missing in failures:
-                  print(f'FAIL {name}: missing Latin={latin_missing} Czech={czech_missing}')
-              raise SystemExit(1)
-          print('COMBINED FONT BASIC LATIN + CZECH CMAP: PASS')
-          PY
+      - name: Build transformed candidate
+        run: cd candidate && npm run build:local
+      - name: Start transformed production-equivalent Worker
+        run: |
+          cd candidate
+          npx -y wrangler@4.128.0 dev --local --port 8788 > /tmp/combined-worker.log 2>&1 &
+          echo $! > /tmp/combined-worker.pid
+          for i in {1..45}; do
+            if curl -fsS http://127.0.0.1:8788/ >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/combined-worker.log
+          exit 1
+      - name: Verify rendered font identity and focused typography
+        env:
+          TYPO_BASE_URL: http://127.0.0.1:8788
+        run: |
+          cd candidate
+          node .github/qa/czech-typography-browser-test.mjs | tee combined-browser-font-check.log
+      - name: Calibrate actual DOM collision detector
+        env:
+          TYPO_BASE_URL: http://127.0.0.1:8788
+        run: cd candidate && node .github/qa/czech-dom-paint-calibration.mjs
+      - name: Run corrected full 88-combination Czech typography audit
+        env:
+          TYPO_BASE_URL: http://127.0.0.1:8788
+        run: cd candidate && node .github/qa/czech-typography-site-audit-v2.mjs
+      - name: Run actual DOM 88-combination collision and overlap audit
+        env:
+          TYPO_BASE_URL: http://127.0.0.1:8788
+        run: cd candidate && node .github/qa/czech-typography-geometry-audit.mjs
+      - name: Upload combined-font rendering evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: combined-font-rendering-evidence
+          if-no-files-found: warn
+          path: |
+            candidate/combined-browser-font-check.log
+            candidate/czech-dom-paint-calibration.json
+            candidate/czech-typography-site-audit.json
+            candidate/czech-typography-geometry-audit.json
+            candidate/candidate-screenshots/
+            candidate/collision-evidence/
+            /tmp/combined-worker.log
