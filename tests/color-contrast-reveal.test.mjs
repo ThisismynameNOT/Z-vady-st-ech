@@ -4,7 +4,6 @@ import fs from 'node:fs';
 
 const siteCss = fs.readFileSync(new URL('../src/styles/site.css', import.meta.url), 'utf8');
 const accessibilityCss = fs.readFileSync(new URL('../src/styles/accessibility.css', import.meta.url), 'utf8');
-const cssInLoadOrder = `${siteCss}\n${accessibilityCss}`;
 
 // Exact route/viewport combinations from the final production acceptance run
 // that produced the 67 axe color-contrast nodes at the early reveal snapshot.
@@ -41,30 +40,28 @@ test('color-contrast regression fixture preserves all 24 failing acceptance comb
   assert.deepEqual([...new Set(acceptanceFailingCombinations.map(([, route]) => route))].sort(), ['/', '/firma/', '/realizace/', '/sluzby/']);
 });
 
-test('effective reveal motion must not transition opacity through low-contrast intermediate states', () => {
+test('reveal keeps approved motion while opacity changes discretely', () => {
   const baseReveal = siteCss.match(/\.reveal\{([^}]*)\}/);
   const visible = siteCss.match(/\.reveal\.visible\{([^}]*)\}/);
   assert.ok(baseReveal, 'site.css must contain the base .reveal rule');
   assert.ok(visible, 'site.css must contain the .reveal.visible rule');
 
-  // Preserve the approved hidden pre-reveal state and 18px vertical motion.
   assert.match(baseReveal[1], /(?:^|;)opacity:0(?:;|$)/, '.reveal must remain hidden before it is revealed');
   assert.match(baseReveal[1], /(?:^|;)transform:translateY\(18px\)(?:;|$)/, '.reveal must preserve the approved vertical offset');
   assert.match(visible[1], /(?:^|;)opacity:1(?:;|$)/, '.reveal.visible must become fully opaque');
   assert.match(visible[1], /(?:^|;)transform:none(?:;|$)/, '.reveal.visible must finish the vertical motion');
 
-  // BaseLayout imports site.css and then accessibility.css. Resolve the last
-  // transition declaration applying to .reveal in that same cascade order.
-  const revealRules = [...cssInLoadOrder.matchAll(/\.reveal\{([^}]*)\}/g)];
-  const transition = revealRules
-    .map(match => match[1].match(/(?:^|;)transition:([^;}]*)/)?.[1]?.trim())
-    .filter(Boolean)
-    .at(-1) || '';
+  assert.match(
+    accessibilityCss,
+    /(?:^|\n)\.reveal\{transition:transform \.7s ease\}(?:\n|$)/,
+    `reveal must animate transform only so opacity cannot pass through low-contrast intermediate states in ${acceptanceFailingCombinations.length} acceptance combinations`,
+  );
+});
 
-  assert.equal(
-    transition,
-    'transform .7s ease',
-    `expected effective reveal transition to animate transform only; got ${JSON.stringify(transition)}. ` +
-      `Animating opacity reproduces axe color-contrast failures in ${acceptanceFailingCombinations.length} route/viewport combinations.`,
+test('contrast fix preserves reduced-motion transition suppression', () => {
+  assert.match(
+    accessibilityCss,
+    /@media\(prefers-reduced-motion:reduce\)\{\.reveal\{transition:none\}\}/,
+    'the later accessibility stylesheet must retain transition:none for reduced-motion users',
   );
 });
