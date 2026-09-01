@@ -50,11 +50,14 @@ jobs:
           name: astro-dist-lcp-validation
           path: dist
           if-no-files-found: error
-      - name: Install Lighthouse measurement tool
-        run: npm install --no-save --package-lock=false lighthouse@12.8.2
-      - name: Start built Worker locally with current QA runtime
+      - name: Install QA-only Lighthouse and current Wrangler
         run: |
-          npx --yes wrangler@4.127.1 dev --port 8787 --local > /tmp/wrangler-lcp.log 2>&1 &
+          npm install --no-save --package-lock=false lighthouse@12.8.2 wrangler@4.127.1
+          ./node_modules/.bin/wrangler --version | tee /tmp/wrangler-version.txt
+          grep -q '4.127.1' /tmp/wrangler-version.txt
+      - name: Start built Worker locally with QA-only Wrangler 4.127.1
+        run: |
+          ./node_modules/.bin/wrangler dev --port 8787 --local > /tmp/wrangler-lcp.log 2>&1 &
           echo $! > /tmp/wrangler-lcp.pid
           for i in {1..45}; do
             if curl -fsS http://127.0.0.1:8787/ > /tmp/home-lcp.html; then
@@ -68,7 +71,7 @@ jobs:
       - name: Homepage Lighthouse mobile x3
         run: |
           for run in 1 2 3; do
-            npx lighthouse http://127.0.0.1:8787/ \
+            ./node_modules/.bin/lighthouse http://127.0.0.1:8787/ \
               --output=json \
               --output-path="lh-mobile-${run}.json" \
               --chrome-flags="--headless --no-sandbox --disable-dev-shm-usage" \
@@ -77,7 +80,7 @@ jobs:
           done
       - name: Homepage Lighthouse desktop
         run: |
-          npx lighthouse http://127.0.0.1:8787/ \
+          ./node_modules/.bin/lighthouse http://127.0.0.1:8787/ \
             --preset=desktop \
             --output=json \
             --output-path=lh-desktop.json \
@@ -94,6 +97,8 @@ jobs:
             const requests = report.audits['network-requests']?.details?.items || [];
             const heroRequest = requests.find((item) => /\/assets\/hero\/hero-prague-\d+\.(?:avif|webp|jpg)(?:\?|$)/.test(item.url));
             const originalRequest = requests.find((item) => item.url.includes('/assets/images/hero-prague.jpg'));
+            const match = heroRequest?.url?.match(/hero-prague-(\d+)\.(avif|webp|jpg)(?:\?|$)/);
+            const selectedPath = match ? `public/assets/hero/hero-prague-${match[1]}.${match[2]}` : null;
             return {
               file,
               mode: file.includes('desktop') ? 'desktop' : 'mobile',
@@ -104,21 +109,29 @@ jobs:
               lcpMs: report.audits['largest-contentful-paint']?.numericValue ?? null,
               headingOrder: report.audits['heading-order']?.score ?? null,
               heroUrl: heroRequest?.url ?? null,
+              heroFormat: match?.[2] ?? null,
+              heroCandidateWidth: match ? Number(match[1]) : null,
               heroTransferSize: heroRequest?.transferSize ?? null,
               heroResourceSize: heroRequest?.resourceSize ?? null,
+              heroEncodedFileBytes: selectedPath && fs.existsSync(selectedPath) ? fs.statSync(selectedPath).size : null,
               downloadedOriginalHero: Boolean(originalRequest),
             };
           });
           const mobile = summaries.filter((row) => row.mode === 'mobile');
           const sortedLcp = mobile.map((row) => row.lcpMs).sort((a,b) => a-b);
+          const sortedPerf = mobile.map((row) => row.performance).sort((a,b) => a-b);
           const summary = {
-            featureHead: process.env.GITHUB_SHA,
+            featureHead: 'fix/homepage-mobile-lcp',
+            featureCommit: require('child_process').execSync('git rev-parse HEAD').toString().trim(),
             mobile,
             desktop: summaries.find((row) => row.mode === 'desktop'),
+            medianMobilePerformance: sortedPerf[1],
             medianMobileLcpMs: sortedLcp[1],
+            productionBaselineHeroBytes: 610933,
             originalHeroSha256: '61facd9161196cf4c9927c98393bff668980cb25268a36aa033587ccd8280b14',
+            cmsPath: '/assets/images/hero-prague.jpg',
             photographVisuallyUnchanged: true,
-            visualEvidence: 'Same original CMS photograph; derivatives are resize-only 16:9 encodes; existing .hero-media img object-fit/filter rule is locked by regression test.',
+            visualEvidence: 'Same original CMS photograph; responsive derivatives are resize-only 16:9 encodes; regression coverage locks the existing hero object-fit/filter styling and alt/fetch priority behavior.',
           };
           fs.writeFileSync('lcp-summary.json', JSON.stringify(summary, null, 2));
           console.log(JSON.stringify(summary, null, 2));
