@@ -8,15 +8,15 @@ permissions:
   contents: read
 
 jobs:
-  semantic-red:
+  semantic-green:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: 4ae867f1b9fac8fc1561a9172eecd347cfb48379
+          ref: 65499962163e19221091004b28e44ff9103469a1
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Focused landmark regression RED
+      - name: Focused landmark regression GREEN
         run: node --test tests/landmark-semantics.test.mjs
