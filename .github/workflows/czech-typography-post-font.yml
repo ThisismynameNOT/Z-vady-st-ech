@@ -1,0 +1,55 @@
+name: Czech Typography Post Font Diagnostic
+
+on:
+  push:
+    branches: [fix/czech-typography-rendering]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  post-font:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install project and QA tools
+        run: |
+          npm ci --no-audit --no-fund
+          python -m pip install --disable-pip-version-check --quiet fonttools brotli
+          rm -rf /tmp/typo-test && mkdir -p /tmp/typo-test && cd /tmp/typo-test
+          npm init -y >/dev/null
+          npm install --no-audit --no-fund playwright-core@1.55.0
+          ln -s /tmp/typo-test/node_modules "$GITHUB_WORKSPACE/.github/qa/node_modules"
+          CHROME_PATH="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser)"
+          echo "CHROME_PATH=$CHROME_PATH" >> "$GITHUB_ENV"
+      - name: Verify combined local Czech coverage
+        run: python .github/qa/czech-font-coverage-test.py
+      - name: Build candidate
+        run: npm run build:local
+      - name: Start production-equivalent local Worker
+        run: |
+          npx wrangler dev --local --port 8788 > /tmp/wrangler.log 2>&1 &
+          echo $! > /tmp/wrangler.pid
+          for i in {1..40}; do
+            if curl -fsS http://127.0.0.1:8788/ >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/wrangler.log
+          exit 1
+      - name: Re-measure rendered fonts and multiline geometry after font fix
+        id: browser
+        continue-on-error: true
+        env:
+          TYPO_BASE_URL: http://127.0.0.1:8788
+        run: node .github/qa/czech-typography-browser-test.mjs
+      - name: Preserve post-font diagnostic state
+        if: always()
+        run: |
+          echo "browser_outcome=${{ steps.browser.outcome }}"
+          cat /tmp/wrangler.log | tail -80 || true
