@@ -2,27 +2,28 @@ from pathlib import Path
 from fontTools.ttLib import TTFont
 
 TARGET = "ŘřŮůĚěŠšČčŽžÝýÁáÍíÉéÓóĎďŤťŇň"
-EXPECTED = [
-    "inter-400.woff2", "inter-500.woff2", "inter-600.woff2",
-    "cormorant-garamond-400.woff2", "cormorant-garamond-500.woff2",
-    "cormorant-garamond-600.woff2", "cormorant-garamond-400-italic.woff2",
+FACES = [
+    "inter-400", "inter-500", "inter-600",
+    "cormorant-garamond-400", "cormorant-garamond-500",
+    "cormorant-garamond-600", "cormorant-garamond-400-italic",
 ]
 FONT_DIR = Path("public/assets/fonts")
 
 failures = []
-for name in EXPECTED:
-    path = FONT_DIR / name
-    if not path.exists():
-        failures.append(f"missing font asset: {path}")
+for face in FACES:
+    paths = sorted(FONT_DIR.glob(f"{face}*.woff2"))
+    if not paths:
+        failures.append(f"missing font assets for face: {face}")
         continue
-    font = TTFont(path)
     cmap = set()
-    for table in font["cmap"].tables:
-        if table.isUnicode():
-            cmap.update(table.cmap.keys())
+    for path in paths:
+        font = TTFont(path)
+        for table in font["cmap"].tables:
+            if table.isUnicode():
+                cmap.update(table.cmap.keys())
     missing = [ch for ch in TARGET if ord(ch) not in cmap]
     if missing:
-        failures.append(f"{name}: missing Czech glyphs: {' '.join(missing)}")
+        failures.append(f"{face}: combined local subsets missing Czech glyphs: {' '.join(missing)}; files={','.join(p.name for p in paths)}")
 
 if failures:
     print("CZECH FONT COVERAGE: FAIL")
