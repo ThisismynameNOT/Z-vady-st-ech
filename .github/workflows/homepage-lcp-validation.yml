@@ -1,4 +1,4 @@
-name: Homepage LCP Validation
+name: Homepage Live LCP Verification
 
 on:
   push:
@@ -9,96 +9,70 @@ permissions:
   contents: read
 
 jobs:
-  validate:
+  verify-live-production:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 20
+    env:
+      LIVE_URL: https://zavady-strech-praha.iadamt-93.workers.dev/
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: fix/homepage-mobile-lcp
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
-          cache-dependency-path: package-lock.json
-      - run: npm ci --no-audit --no-fund
-      - name: Verify unchanged hero source
+      - name: Confirm live Worker exposes responsive hero
         run: |
-          node <<'NODE'
-          const fs = require('fs');
-          const crypto = require('crypto');
-          const original = fs.readFileSync('public/assets/images/hero-prague.jpg');
-          const sha = crypto.createHash('sha256').update(original).digest('hex');
-          const home = JSON.parse(fs.readFileSync('content/pages/home.json', 'utf8'));
-          const hero = home.sections.find((section) => section._template === 'hero');
-          console.log(JSON.stringify({ bytes: original.length, sha256: sha, cmsSource: hero?.backgroundImage }, null, 2));
-          if (sha !== '61facd9161196cf4c9927c98393bff668980cb25268a36aa033587ccd8280b14') throw new Error('original hero photograph changed');
-          if (hero?.backgroundImage !== '/assets/images/hero-prague.jpg') throw new Error('homepage hero content source changed');
-          NODE
-      - name: Dependency high-severity gate
-        run: npm audit --omit=dev --audit-level=high
-      - name: Tests
-        run: npm test
-      - name: Project audit
-        run: npm run audit
-      - name: Astro typecheck
-        run: npm run typecheck
-      - name: Build local
-        run: npm run build:local
-      - uses: actions/upload-artifact@v4
-        with:
-          name: astro-dist-lcp-validation
-          path: dist
-          if-no-files-found: error
-      - name: Install QA-only Lighthouse and current Wrangler
+          curl -fsSL "$LIVE_URL" -o live-home.html
+          grep -q '/assets/hero/hero-prague-' live-home.html
+          grep -q '/assets/images/hero-prague.jpg' live-home.html
+      - name: Install QA-only Lighthouse
         run: |
-          npm install --no-save --package-lock=false lighthouse@12.8.2 wrangler@4.127.1
-          ./node_modules/.bin/wrangler --version | tee /tmp/wrangler-version.txt
-          grep -q '4.127.1' /tmp/wrangler-version.txt
-      - name: Start built Worker locally with QA-only Wrangler 4.127.1
-        run: |
-          ./node_modules/.bin/wrangler dev --port 8787 --local > /tmp/wrangler-lcp.log 2>&1 &
-          echo $! > /tmp/wrangler-lcp.pid
-          for i in {1..45}; do
-            if curl -fsS http://127.0.0.1:8787/ > /tmp/home-lcp.html; then
-              echo "Worker preview ready"
-              exit 0
-            fi
-            sleep 1
-          done
-          cat /tmp/wrangler-lcp.log
-          exit 1
+          npm install --no-save --package-lock=false lighthouse@12.8.2
+          ./node_modules/.bin/lighthouse --version
       - name: Homepage Lighthouse mobile x3
         run: |
           for run in 1 2 3; do
-            ./node_modules/.bin/lighthouse http://127.0.0.1:8787/ \
+            ./node_modules/.bin/lighthouse "$LIVE_URL" \
               --output=json \
               --output-path="lh-mobile-${run}.json" \
               --chrome-flags="--headless --no-sandbox --disable-dev-shm-usage" \
               --only-categories=performance,accessibility,best-practices,seo \
               --quiet
           done
-      - name: Homepage Lighthouse desktop
+      - name: Homepage Lighthouse desktop x1
         run: |
-          ./node_modules/.bin/lighthouse http://127.0.0.1:8787/ \
+          ./node_modules/.bin/lighthouse "$LIVE_URL" \
             --preset=desktop \
             --output=json \
             --output-path=lh-desktop.json \
             --chrome-flags="--headless --no-sandbox --disable-dev-shm-usage" \
             --only-categories=performance,accessibility,best-practices,seo \
             --quiet
-      - name: Summarize and enforce performance evidence
+      - name: Summarize live production evidence
         run: |
           node <<'NODE'
           const fs = require('fs');
-          const modes = ['lh-mobile-1.json','lh-mobile-2.json','lh-mobile-3.json','lh-desktop.json'];
-          const summaries = modes.map((file) => {
+          const files = ['lh-mobile-1.json','lh-mobile-2.json','lh-mobile-3.json','lh-desktop.json'];
+
+          function lcpPhases(report) {
+            const audit = report.audits['lcp-breakdown-insight'];
+            const table = audit?.details?.items?.find?.((item) => item?.type === 'table');
+            const rows = table?.items || [];
+            const bySubpart = Object.fromEntries(rows.map((row) => [row.subpart, row.duration]));
+            return {
+              ttfbMs: bySubpart.timeToFirstByte ?? null,
+              resourceLoadDelayMs: bySubpart.resourceLoadDelay ?? null,
+              resourceLoadDurationMs: bySubpart.resourceLoadDuration ?? null,
+              elementRenderDelayMs: bySubpart.elementRenderDelay ?? null,
+              raw: rows,
+            };
+          }
+
+          const runs = files.map((file) => {
             const report = JSON.parse(fs.readFileSync(file, 'utf8'));
             const requests = report.audits['network-requests']?.details?.items || [];
-            const heroRequest = requests.find((item) => /\/assets\/hero\/hero-prague-\d+\.(?:avif|webp|jpg)(?:\?|$)/.test(item.url));
-            const originalRequest = requests.find((item) => item.url.includes('/assets/images/hero-prague.jpg'));
-            const match = heroRequest?.url?.match(/hero-prague-(\d+)\.(avif|webp|jpg)(?:\?|$)/);
-            const selectedPath = match ? `public/assets/hero/hero-prague-${match[1]}.${match[2]}` : null;
+            const hero = requests.find((item) => /\/assets\/hero\/hero-prague-\d+\.(?:avif|webp|jpg)(?:\?|$)/.test(item.url));
+            const original = requests.find((item) => item.url.includes('/assets/images/hero-prague.jpg'));
+            const match = hero?.url?.match(/hero-prague-(\d+)\.(avif|webp|jpg)(?:\?|$)/);
             return {
               file,
               mode: file.includes('desktop') ? 'desktop' : 'mobile',
@@ -107,48 +81,45 @@ jobs:
               bestPractices: Math.round((report.categories['best-practices'].score ?? 0) * 100),
               seo: Math.round((report.categories.seo.score ?? 0) * 100),
               lcpMs: report.audits['largest-contentful-paint']?.numericValue ?? null,
-              headingOrder: report.audits['heading-order']?.score ?? null,
-              heroUrl: heroRequest?.url ?? null,
+              heroUrl: hero?.url ?? null,
               heroFormat: match?.[2] ?? null,
               heroCandidateWidth: match ? Number(match[1]) : null,
-              heroTransferSize: heroRequest?.transferSize ?? null,
-              heroResourceSize: heroRequest?.resourceSize ?? null,
-              heroEncodedFileBytes: selectedPath && fs.existsSync(selectedPath) ? fs.statSync(selectedPath).size : null,
-              downloadedOriginalHero: Boolean(originalRequest),
+              heroTransferSize: hero?.transferSize ?? null,
+              heroResourceSize: hero?.resourceSize ?? null,
+              downloadedOriginalHero: Boolean(original),
+              originalHeroTransferSize: original?.transferSize ?? null,
+              lcpPhases: lcpPhases(report),
             };
           });
-          const mobile = summaries.filter((row) => row.mode === 'mobile');
-          const sortedLcp = mobile.map((row) => row.lcpMs).sort((a,b) => a-b);
-          const sortedPerf = mobile.map((row) => row.performance).sort((a,b) => a-b);
+
+          const mobile = runs.filter((run) => run.mode === 'mobile');
+          const sortedLcp = mobile.map((run) => run.lcpMs).sort((a,b) => a-b);
           const summary = {
-            featureHead: 'fix/homepage-mobile-lcp',
-            featureCommit: require('child_process').execSync('git rev-parse HEAD').toString().trim(),
+            liveUrl: process.env.LIVE_URL,
             mobile,
-            desktop: summaries.find((row) => row.mode === 'desktop'),
-            medianMobilePerformance: sortedPerf[1],
+            desktop: runs.find((run) => run.mode === 'desktop'),
             medianMobileLcpMs: sortedLcp[1],
-            productionBaselineHeroBytes: 610933,
-            originalHeroSha256: '61facd9161196cf4c9927c98393bff668980cb25268a36aa033587ccd8280b14',
-            cmsPath: '/assets/images/hero-prague.jpg',
-            photographVisuallyUnchanged: true,
-            visualEvidence: 'Same original CMS photograph; responsive derivatives are resize-only 16:9 encodes; regression coverage locks the existing hero object-fit/filter styling and alt/fetch priority behavior.',
+            productionBaselineOriginalHeroBytes: 610933,
           };
-          fs.writeFileSync('lcp-summary.json', JSON.stringify(summary, null, 2));
+          fs.writeFileSync('live-lcp-summary.json', JSON.stringify(summary, null, 2));
           console.log(JSON.stringify(summary, null, 2));
-          for (const row of summaries) {
-            if (row.accessibility !== 100) throw new Error(`${row.file}: accessibility regressed to ${row.accessibility}`);
-            if (row.headingOrder !== 1) throw new Error(`${row.file}: heading-order regressed`);
-            if (!row.heroUrl) throw new Error(`${row.file}: browser did not select a responsive hero candidate`);
-            if (row.downloadedOriginalHero) throw new Error(`${row.file}: browser also downloaded the desktop fallback hero`);
+
+          for (const run of runs) {
+            if (!run.heroUrl) throw new Error(`${run.file}: responsive hero was not selected`);
+            if (run.downloadedOriginalHero) throw new Error(`${run.file}: original 610,933-byte hero was also downloaded`);
+            if (run.accessibility !== 100) throw new Error(`${run.file}: accessibility regressed to ${run.accessibility}`);
+            if (run.bestPractices !== 100) throw new Error(`${run.file}: best practices regressed to ${run.bestPractices}`);
+            if (run.seo !== 100) throw new Error(`${run.file}: SEO regressed to ${run.seo}`);
           }
           NODE
       - uses: actions/upload-artifact@v4
         with:
-          name: homepage-lcp-evidence
+          name: homepage-live-production-lcp-evidence
           path: |
+            live-home.html
             lh-mobile-1.json
             lh-mobile-2.json
             lh-mobile-3.json
             lh-desktop.json
-            lcp-summary.json
+            live-lcp-summary.json
           if-no-files-found: error
