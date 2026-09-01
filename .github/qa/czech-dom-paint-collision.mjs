@@ -48,11 +48,30 @@ export async function measureDomPaintCollision(page, selector, options = {}) {
   const locator = page.locator(selector).first();
   if (!(await locator.count())) throw new Error(`DOM paint target not found: ${selector}`);
   await locator.scrollIntoViewIfNeeded();
+  await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
 
   const token = `czech-${Date.now()}-${Math.random().toString(36).slice(2)}`;
   const prepared = await page.evaluate(({ selector, token, highlightName }) => {
     const target = document.querySelector(selector);
     if (!target) return { found: false };
+
+    const targetRect = target.getBoundingClientRect();
+    const intersects = (a, b) => Math.min(a.right, b.right) - Math.max(a.left, b.left) > 1 && Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top) > 1;
+    const hiddenOverlays = [];
+    for (const el of document.querySelectorAll('body *')) {
+      if (el === target || el.contains(target) || target.contains(el)) continue;
+      const s = getComputedStyle(el);
+      if (s.display === 'none' || s.visibility === 'hidden' || Number(s.opacity) === 0) continue;
+      if (s.position !== 'fixed' && s.position !== 'sticky') continue;
+      const rect = el.getBoundingClientRect();
+      if (rect.width < 1 || rect.height < 1 || !intersects(rect, targetRect)) continue;
+      el.setAttribute('data-czech-collision-overlay', token);
+      hiddenOverlays.push({
+        tag: el.tagName.toLowerCase(),
+        className: typeof el.className === 'string' ? el.className : '',
+        position: s.position,
+      });
+    }
 
     const textNodes = [];
     const walker = document.createTreeWalker(target, NodeFilter.SHOW_TEXT);
@@ -72,7 +91,6 @@ export async function measureDomPaintCollision(page, selector, options = {}) {
         chars.push({
           nodeIndex,
           offset,
-          ch,
           left: rect.left,
           top: rect.top,
           right: rect.right,
@@ -120,6 +138,18 @@ export async function measureDomPaintCollision(page, selector, options = {}) {
     const style = document.createElement('style');
     style.id = `czech-collision-style-${token}`;
     style.textContent = `
+      html *, html *::before, html *::after {
+        transition: none !important;
+        animation: none !important;
+        scroll-behavior: auto !important;
+      }
+      .reveal {
+        opacity: 1 !important;
+        transform: none !important;
+      }
+      [data-czech-collision-overlay="${token}"] {
+        visibility: hidden !important;
+      }
       [data-czech-collision-target="${token}"],
       [data-czech-collision-target="${token}"] * {
         color: transparent !important;
@@ -145,19 +175,22 @@ export async function measureDomPaintCollision(page, selector, options = {}) {
     globalThis.CSS?.highlights?.delete(highlightName);
     globalThis.getSelection()?.removeAllRanges();
 
+    const cs = getComputedStyle(target);
     return {
       found: true,
       customHighlight,
+      hiddenOverlays,
       lineCount: ranges.length,
       lines: lineMeta,
       text: (target.textContent || '').replace(/\s+/g, ' ').trim(),
-      fontFamily: getComputedStyle(target).fontFamily,
-      fontSize: parseFloat(getComputedStyle(target).fontSize),
-      lineHeight: getComputedStyle(target).lineHeight === 'normal' ? null : parseFloat(getComputedStyle(target).lineHeight),
+      fontFamily: cs.fontFamily,
+      fontSize: parseFloat(cs.fontSize),
+      lineHeight: cs.lineHeight === 'normal' ? null : parseFloat(cs.lineHeight),
     };
   }, { selector, token, highlightName: HIGHLIGHT_NAME });
 
   if (!prepared.found) throw new Error(`DOM paint target disappeared: ${selector}`);
+  await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
 
   try {
     if (options.evidencePath) {
@@ -165,18 +198,12 @@ export async function measureDomPaintCollision(page, selector, options = {}) {
         const state = globalThis.__czechPaintCollision;
         globalThis.CSS?.highlights?.delete(highlightName);
         globalThis.getSelection()?.removeAllRanges();
-        state.style.remove();
         state.target.removeAttribute('data-czech-collision-target');
       }, { token, highlightName: HIGHLIGHT_NAME });
       await locator.screenshot({ path: options.evidencePath, animations: 'disabled' });
-      await page.evaluate(({ selector, token, highlightName }) => {
-        const target = document.querySelector(selector);
-        const state = globalThis.__czechPaintCollision;
-        document.head.append(state.style);
-        target.setAttribute('data-czech-collision-target', token);
-        globalThis.CSS?.highlights?.delete(highlightName);
-        globalThis.getSelection()?.removeAllRanges();
-      }, { selector, token, highlightName: HIGHLIGHT_NAME });
+      await page.evaluate(({ token }) => {
+        globalThis.__czechPaintCollision.target.setAttribute('data-czech-collision-target', token);
+      }, { token });
     }
 
     const blank = await locator.screenshot({ animations: 'disabled' });
@@ -234,6 +261,7 @@ export async function measureDomPaintCollision(page, selector, options = {}) {
     return {
       supported: prepared.lineCount > 0 && paintedPixelsPerLine.every(count => count > 0),
       mode,
+      hiddenOverlays: prepared.hiddenOverlays,
       lineCount: prepared.lineCount,
       collisionPixels,
       pairs,
@@ -245,13 +273,14 @@ export async function measureDomPaintCollision(page, selector, options = {}) {
       lineHeight: prepared.lineHeight,
     };
   } finally {
-    await page.evaluate(({ highlightName }) => {
+    await page.evaluate(({ token, highlightName }) => {
       const state = globalThis.__czechPaintCollision;
       globalThis.CSS?.highlights?.delete(highlightName);
       globalThis.getSelection()?.removeAllRanges();
       if (state?.style?.isConnected) state.style.remove();
       if (state?.target) state.target.removeAttribute('data-czech-collision-target');
+      document.querySelectorAll(`[data-czech-collision-overlay="${token}"]`).forEach(el => el.removeAttribute('data-czech-collision-overlay'));
       delete globalThis.__czechPaintCollision;
-    }, { highlightName: HIGHLIGHT_NAME }).catch(() => {});
+    }, { token, highlightName: HIGHLIGHT_NAME }).catch(() => {});
   }
 }
