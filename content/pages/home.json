@@ -101,6 +101,10 @@
       "secondaryLabel": "Poptat opravu",
       "secondaryUrl": "/kontakt/",
       "_template": "contactCta"
+    },
+    {
+      "height": 16,
+      "_template": "spacer"
     }
   ]
 }
