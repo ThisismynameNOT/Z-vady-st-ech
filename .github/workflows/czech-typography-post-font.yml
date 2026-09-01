@@ -46,6 +46,10 @@ jobs:
         env:
           TYPO_BASE_URL: http://127.0.0.1:8788
         run: node .github/qa/czech-typography-browser-test.mjs
+      - name: Sweep selector line-height thresholds
+        env:
+          TYPO_BASE_URL: http://127.0.0.1:8788
+        run: node .github/qa/czech-line-height-sweep.mjs
       - name: Calibrate actual DOM collision detector
         id: calibration
         continue-on-error: true
@@ -73,6 +77,7 @@ jobs:
           name: czech-typography-candidate-audit
           if-no-files-found: warn
           path: |
+            czech-line-height-sweep.json
             czech-dom-paint-calibration.json
             calibration-negative.png
             calibration-negative-line-*.png
