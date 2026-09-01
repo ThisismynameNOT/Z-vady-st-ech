@@ -8,15 +8,64 @@ permissions:
   contents: read
 
 jobs:
-  semantic-green:
+  candidate:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
         with:
           ref: 65499962163e19221091004b28e44ff9103469a1
+      - uses: actions/checkout@v4
+        with:
+          ref: qa/landmark-cleanup-validation
+          path: qa-harness
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Focused landmark regression GREEN
-        run: node --test tests/landmark-semantics.test.mjs
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - name: Install repository dependencies
+        run: npm ci --no-audit --no-fund
+      - name: High-severity dependency gate
+        run: npm audit --omit=dev --audit-level=high
+      - name: Repository tests
+        run: npm test
+      - name: Project audit
+        run: npm run audit
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Production-equivalent local build
+        run: npm run build:local
+      - name: Install QA-only browser/runtime tools
+        run: |
+          npm install --no-save --package-lock=false playwright-core@1.55.0 axe-core@4.10.2 wrangler@4.127.1
+          CHROME_PATH="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser)"
+          test -n "$CHROME_PATH"
+          echo "CHROME_PATH=$CHROME_PATH" >> "$GITHUB_ENV"
+          ./node_modules/.bin/wrangler --version
+          "$CHROME_PATH" --version
+      - name: Start built candidate Worker
+        run: |
+          ./node_modules/.bin/wrangler dev --port 8787 > /tmp/landmark-wrangler.log 2>&1 &
+          for i in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:8787/ >/dev/null; then
+              echo "candidate Worker ready"
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/landmark-wrangler.log
+          exit 1
+      - name: Full 11-route x 8-viewport axe and interaction matrix
+        env:
+          CANDIDATE_URL: http://127.0.0.1:8787
+        run: node qa-harness/.github/qa/landmark-candidate.mjs
+      - name: Candidate Worker log
+        if: always()
+        run: cat /tmp/landmark-wrangler.log || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: landmark-candidate-evidence
+          path: landmark-candidate.json
+          if-no-files-found: warn
