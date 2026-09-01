@@ -46,11 +46,15 @@ jobs:
         env:
           TYPO_BASE_URL: http://127.0.0.1:8788
         run: node .github/qa/czech-typography-browser-test.mjs
-      - name: Run full 88-combination Czech typography audit
+      - name: Run corrected full 88-combination Czech typography audit
+        id: site
+        continue-on-error: true
         env:
           TYPO_BASE_URL: http://127.0.0.1:8788
-        run: node .github/qa/czech-typography-site-audit.mjs
+        run: node .github/qa/czech-typography-site-audit-v2.mjs
       - name: Run explicit 88-combination collision and overlap audit
+        id: geometry
+        continue-on-error: true
         env:
           TYPO_BASE_URL: http://127.0.0.1:8788
         run: node .github/qa/czech-typography-geometry-audit.mjs
@@ -64,6 +68,13 @@ jobs:
             czech-typography-site-audit.json
             czech-typography-geometry-audit.json
             candidate-screenshots/
+      - name: Enforce corrected typography gates
+        if: always()
+        run: |
+          echo "site=${{ steps.site.outcome }}"
+          echo "geometry=${{ steps.geometry.outcome }}"
+          test "${{ steps.site.outcome }}" = success
+          test "${{ steps.geometry.outcome }}" = success
       - name: Preserve Worker diagnostic state
         if: always()
         run: cat /tmp/wrangler.log | tail -80 || true
