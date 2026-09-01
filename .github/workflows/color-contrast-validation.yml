@@ -1,0 +1,25 @@
+name: Color Contrast Feature Validation
+
+on:
+  push:
+    branches: [qa/color-contrast-validation]
+
+permissions:
+  contents: read
+
+jobs:
+  red:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 121adee2ef0c9a5a845a3454b6e01b32ef002953
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - run: npm ci --no-audit --no-fund
+      - name: Run focused color contrast regression test
+        run: node --test tests/color-contrast-reveal.test.mjs
