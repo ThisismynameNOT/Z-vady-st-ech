@@ -9,10 +9,15 @@ permissions:
   contents: read
 
 jobs:
-  combined-font-rendering:
+  paired-performance:
     runs-on: ubuntu-latest
     timeout-minutes: 35
     steps:
+      - name: Checkout merge-base control
+        uses: actions/checkout@v4
+        with:
+          ref: 1cc9ca6f89242b3ac31ee4e848ebad1bec1ecf32
+          path: baseline
       - name: Checkout typography candidate
         uses: actions/checkout@v4
         with:
@@ -21,18 +26,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Install project and QA tools
+      - name: Generate the validated temporary combined faces
         run: |
-          (cd candidate && npm ci --no-audit --no-fund)
           python -m pip install --disable-pip-version-check --quiet fonttools brotli
-          rm -rf /tmp/typo-test && mkdir -p /tmp/typo-test && cd /tmp/typo-test
-          npm init -y >/dev/null
-          npm install --no-audit --no-fund playwright-core@1.55.0 pngjs@7.0.0
-          ln -s /tmp/typo-test/node_modules "$GITHUB_WORKSPACE/candidate/.github/qa/node_modules"
-          CHROME_PATH="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser)"
-          echo "CHROME_PATH=$CHROME_PATH" >> "$GITHUB_ENV"
-      - name: Generate experimental combined Czech faces
-        run: |
           python <<'PY'
           from fontTools.merge import Merger
           from pathlib import Path
@@ -66,62 +62,159 @@ jobs:
           css = css.replace('unicode-range:U+0100-024F,U+1E00-1EFF', '')
           css += '\n:root{--sans:InterCzech,Inter,Arial,sans-serif;--serif:CormorantCzech,Cormorant,Georgia,serif}\n'
           p.write_text(css)
-
-          # The permanent audit probes the production family names. For this
-          # throwaway experiment only, point the seven explicit probes at the
-          # experimental family aliases without changing the retained QA file.
-          audit = Path('candidate/.github/qa/czech-typography-site-audit-v2.mjs')
-          text = audit.read_text()
-          text = text.replace("{family:'Inter',", "{family:'InterCzech',")
-          text = text.replace("{family:'Cormorant',", "{family:'CormorantCzech',")
-          audit.write_text(text)
           PY
-          (
-            cd candidate
-            python .github/qa/czech-font-coverage-test.py
-          )
-      - name: Build transformed candidate
-        run: cd candidate && npm run build:local
-      - name: Start transformed production-equivalent Worker
+          (cd candidate && python .github/qa/czech-font-coverage-test.py)
+      - name: Install and build both exact revisions
         run: |
-          cd candidate
-          npx -y wrangler@4.128.0 dev --local --port 8788 > /tmp/combined-worker.log 2>&1 &
-          echo $! > /tmp/combined-worker.pid
-          for i in {1..45}; do
-            if curl -fsS http://127.0.0.1:8788/ >/dev/null; then exit 0; fi
-            sleep 1
+          (cd baseline && npm ci --no-audit --no-fund && npm run build:local)
+          (cd candidate && npm ci --no-audit --no-fund && npm run build:local)
+      - name: Install pinned Lighthouse
+        run: |
+          rm -rf /tmp/perf-control && mkdir -p /tmp/perf-control && cd /tmp/perf-control
+          npm init -y >/dev/null
+          npm install --no-audit --no-fund lighthouse@12.8.2
+          CHROME_PATH="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser)"
+          echo "CHROME_PATH=$CHROME_PATH" >> "$GITHUB_ENV"
+      - name: Start both production-equivalent local Workers
+        run: |
+          (cd baseline && npx -y wrangler@4.128.0 dev --local --port 8788 > /tmp/baseline-worker.log 2>&1 & echo $! > /tmp/baseline-worker.pid)
+          (cd candidate && npx -y wrangler@4.128.0 dev --local --port 8789 > /tmp/candidate-worker.log 2>&1 & echo $! > /tmp/candidate-worker.pid)
+          for port in 8788 8789; do
+            ready=0
+            for i in {1..45}; do
+              if curl -fsS "http://127.0.0.1:$port/" >/dev/null; then ready=1; break; fi
+              sleep 1
+            done
+            test "$ready" = 1
           done
-          cat /tmp/combined-worker.log
-          exit 1
-      - name: Verify rendered font identity and focused typography
-        env:
-          TYPO_BASE_URL: http://127.0.0.1:8788
+      - name: Run alternating mobile samples and paired desktop samples
         run: |
-          cd candidate
-          node .github/qa/czech-typography-browser-test.mjs | tee combined-browser-font-check.log
-      - name: Calibrate actual DOM collision detector
-        env:
-          TYPO_BASE_URL: http://127.0.0.1:8788
-        run: cd candidate && node .github/qa/czech-dom-paint-calibration.mjs
-      - name: Run corrected full 88-combination Czech typography audit
-        env:
-          TYPO_BASE_URL: http://127.0.0.1:8788
-        run: cd candidate && node .github/qa/czech-typography-site-audit-v2.mjs
-      - name: Run actual DOM 88-combination collision and overlap audit
-        env:
-          TYPO_BASE_URL: http://127.0.0.1:8788
-        run: cd candidate && node .github/qa/czech-typography-geometry-audit.mjs
-      - name: Upload combined-font rendering evidence
+          LH=/tmp/perf-control/node_modules/.bin/lighthouse
+          common=(--quiet --output=json --only-categories=performance --chrome-path="$CHROME_PATH" --chrome-flags="--headless --no-sandbox --disable-dev-shm-usage")
+          for n in 1 2 3; do
+            "$LH" http://127.0.0.1:8788/ "${common[@]}" --output-path="baseline-mobile-$n.json"
+            "$LH" http://127.0.0.1:8789/ "${common[@]}" --output-path="candidate-mobile-$n.json"
+          done
+          "$LH" http://127.0.0.1:8788/ "${common[@]}" --preset=desktop --output-path=baseline-desktop.json
+          "$LH" http://127.0.0.1:8789/ "${common[@]}" --preset=desktop --output-path=candidate-desktop.json
+      - name: Extract paired network and LCP evidence
+        run: |
+          node --input-type=module <<'EOF'
+          import fs from 'node:fs';
+          import path from 'node:path';
+
+          const compactRequest = (x) => ({
+            file: (() => { try { return path.basename(new URL(x.url).pathname); } catch { return x.url; } })(),
+            url: x.url,
+            transferSize: x.transferSize || 0,
+            resourceSize: x.resourceSize || 0,
+            resourceType: x.resourceType || null,
+            mimeType: x.mimeType || null,
+            priority: x.priority || null,
+            rendererStartTime: x.rendererStartTime ?? null,
+            networkRequestTime: x.networkRequestTime ?? null,
+            networkEndTime: x.networkEndTime ?? null,
+          });
+          const collectUrls = (value, out = new Set()) => {
+            if (typeof value === 'string') {
+              const matches = value.match(/https?:\/\/[^\s"'<>]+/g) || [];
+              for (const u of matches) out.add(u.replace(/[),.;]+$/, ''));
+            } else if (Array.isArray(value)) {
+              for (const v of value) collectUrls(v, out);
+            } else if (value && typeof value === 'object') {
+              for (const v of Object.values(value)) collectUrls(v, out);
+            }
+            return out;
+          };
+          const read = (file) => {
+            const r = JSON.parse(fs.readFileSync(file));
+            const requests = r.audits['network-requests']?.details?.items || [];
+            const fonts = requests.filter(x => x.resourceType === 'Font' || /\/assets\/fonts\//.test(x.url)).map(compactRequest);
+            const images = requests.filter(x => x.resourceType === 'Image' || /^image\//.test(x.mimeType || '')).map(compactRequest);
+            const documents = requests.filter(x => x.resourceType === 'Document').map(compactRequest);
+            const lcpAuditEntries = Object.entries(r.audits).filter(([key]) => /lcp|largest-contentful/i.test(key));
+            const lcpAudits = Object.fromEntries(lcpAuditEntries.map(([key, a]) => [key, {
+              title: a.title,
+              displayValue: a.displayValue ?? null,
+              numericValue: a.numericValue ?? null,
+              score: a.score ?? null,
+              details: a.details ?? null,
+            }]));
+            const lcpUrls = [...collectUrls(lcpAudits)];
+            const normalized = (u) => { try { return new URL(u).href; } catch { return u; } };
+            const imageUrlSet = new Set(images.map(x => normalized(x.url)));
+            const lcpImageUrls = lcpUrls.filter(u => imageUrlSet.has(normalized(u)));
+            const lcpElement = r.audits['largest-contentful-paint-element']?.details?.items?.[0]?.node?.snippet
+              || r.audits['largest-contentful-paint-element']?.details?.items?.[0]?.node?.nodeLabel
+              || null;
+            const lcpBreakdown = r.audits['lcp-breakdown-insight']?.details
+              || r.audits['largest-contentful-paint-element']?.details
+              || null;
+            return {
+              file,
+              performance: Math.round((r.categories.performance.score || 0) * 100),
+              lcpMs: Math.round(r.audits['largest-contentful-paint'].numericValue),
+              totalTransferBytes: requests.reduce((sum, x) => sum + (x.transferSize || 0), 0),
+              requestCount: requests.length,
+              fontRequestCount: fonts.length,
+              fontTransferBytes: fonts.reduce((sum, x) => sum + x.transferSize, 0),
+              fonts,
+              images,
+              documents,
+              lcpElement,
+              lcpRelatedUrls: lcpUrls,
+              lcpImageUrls,
+              lcpBreakdown,
+              jpegFallbackDownloaded: images.some(x => /\.jpe?g(?:[?#]|$)/i.test(x.url)),
+              lcpAudits,
+            };
+          };
+          const median = (values) => [...values].sort((a,b) => a-b)[Math.floor(values.length / 2)];
+          const baselineMobile = [1,2,3].map(n => read(`baseline-mobile-${n}.json`));
+          const candidateMobile = [1,2,3].map(n => read(`candidate-mobile-${n}.json`));
+          const baselineDesktop = read('baseline-desktop.json');
+          const candidateDesktop = read('candidate-desktop.json');
+          const summary = {
+            baseline: {
+              mobileRuns: baselineMobile.map(x => ({performance:x.performance,lcpMs:x.lcpMs,fontRequestCount:x.fontRequestCount,fontTransferBytes:x.fontTransferBytes,totalTransferBytes:x.totalTransferBytes,lcpImageUrls:x.lcpImageUrls,jpegFallbackDownloaded:x.jpegFallbackDownloaded})),
+              mobileMedian: {performance:median(baselineMobile.map(x=>x.performance)),lcpMs:median(baselineMobile.map(x=>x.lcpMs))},
+              desktop: {performance:baselineDesktop.performance,lcpMs:baselineDesktop.lcpMs,fontRequestCount:baselineDesktop.fontRequestCount,fontTransferBytes:baselineDesktop.fontTransferBytes,totalTransferBytes:baselineDesktop.totalTransferBytes},
+            },
+            candidate: {
+              mobileRuns: candidateMobile.map(x => ({performance:x.performance,lcpMs:x.lcpMs,fontRequestCount:x.fontRequestCount,fontTransferBytes:x.fontTransferBytes,totalTransferBytes:x.totalTransferBytes,lcpImageUrls:x.lcpImageUrls,jpegFallbackDownloaded:x.jpegFallbackDownloaded})),
+              mobileMedian: {performance:median(candidateMobile.map(x=>x.performance)),lcpMs:median(candidateMobile.map(x=>x.lcpMs))},
+              desktop: {performance:candidateDesktop.performance,lcpMs:candidateDesktop.lcpMs,fontRequestCount:candidateDesktop.fontRequestCount,fontTransferBytes:candidateDesktop.fontTransferBytes,totalTransferBytes:candidateDesktop.totalTransferBytes},
+            },
+          };
+          summary.delta = {
+            mobilePerformance: summary.candidate.mobileMedian.performance - summary.baseline.mobileMedian.performance,
+            mobileLcpMs: summary.candidate.mobileMedian.lcpMs - summary.baseline.mobileMedian.lcpMs,
+            desktopPerformance: summary.candidate.desktop.performance - summary.baseline.desktop.performance,
+            desktopLcpMs: summary.candidate.desktop.lcpMs - summary.baseline.desktop.lcpMs,
+          };
+          const evidence = {summary, baselineMobile, candidateMobile, baselineDesktop, candidateDesktop};
+          fs.writeFileSync('typography-performance-control.json', JSON.stringify(evidence, null, 2));
+          console.log(JSON.stringify(summary, null, 2));
+          console.log('BASELINE MOBILE FONT REQUESTS');
+          console.log(JSON.stringify(baselineMobile[1].fonts, null, 2));
+          console.log('COMBINED CANDIDATE MOBILE FONT REQUESTS');
+          console.log(JSON.stringify(candidateMobile[1].fonts, null, 2));
+          console.log('BASELINE LCP ELEMENT/URLS');
+          console.log(JSON.stringify({element:baselineMobile[1].lcpElement,urls:baselineMobile[1].lcpImageUrls,breakdown:baselineMobile[1].lcpBreakdown}, null, 2));
+          console.log('COMBINED CANDIDATE LCP ELEMENT/URLS');
+          console.log(JSON.stringify({element:candidateMobile[1].lcpElement,urls:candidateMobile[1].lcpImageUrls,breakdown:candidateMobile[1].lcpBreakdown}, null, 2));
+          EOF
+      - name: Upload paired performance evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: combined-font-rendering-evidence
+          name: typography-performance-control
           if-no-files-found: warn
           path: |
-            candidate/combined-browser-font-check.log
-            candidate/czech-dom-paint-calibration.json
-            candidate/czech-typography-site-audit.json
-            candidate/czech-typography-geometry-audit.json
-            candidate/candidate-screenshots/
-            candidate/collision-evidence/
-            /tmp/combined-worker.log
+            baseline-mobile-*.json
+            candidate-mobile-*.json
+            baseline-desktop.json
+            candidate-desktop.json
+            typography-performance-control.json
+            /tmp/baseline-worker.log
+            /tmp/candidate-worker.log
