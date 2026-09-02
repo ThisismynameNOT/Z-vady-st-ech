@@ -150,17 +150,18 @@ jobs:
         run: |
           (cd baseline && npm ci --no-audit --no-fund && npm run build:local)
           (cd candidate && npm ci --no-audit --no-fund && npm run build:local)
-      - name: Install pinned Lighthouse
+      - name: Install pinned Lighthouse and Wrangler
         run: |
           rm -rf /tmp/lighthouse-control && mkdir -p /tmp/lighthouse-control && cd /tmp/lighthouse-control
           npm init -y >/dev/null
-          npm install --no-audit --no-fund lighthouse@12.8.2
+          npm install --no-audit --no-fund lighthouse@12.8.2 wrangler@4.128.0
           CHROME_PATH="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser)"
           echo "CHROME_PATH=$CHROME_PATH" >> "$GITHUB_ENV"
       - name: Start both Workers
         run: |
-          (cd baseline && npx -y wrangler@4.128.0 dev --local --port 8789 --inspector-port 9231 > /tmp/baseline-worker.log 2>&1 &)
-          (cd candidate && npx -y wrangler@4.128.0 dev --local --port 8788 --inspector-port 9230 > /tmp/candidate-lh-worker.log 2>&1 &)
+          WRANGLER=/tmp/lighthouse-control/node_modules/.bin/wrangler
+          (cd baseline && "$WRANGLER" dev --local --port 8789 --inspector-port 9231 > /tmp/baseline-worker.log 2>&1 &)
+          (cd candidate && "$WRANGLER" dev --local --port 8788 --inspector-port 9230 > /tmp/candidate-lh-worker.log 2>&1 &)
           for port in 8789 8788; do
             ready=0
             for i in {1..45}; do
