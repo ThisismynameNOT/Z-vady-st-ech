@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const helper = path.join(repoRoot, '.github', 'qa', 'lighthouse-retry.sh');
+const transientRetryNotice = /LIGHTHOUSE RETRY: transient collection failure .*retrying same measurement/i;
 
 function runScenario(scenario, maxAttempts = 3) {
   const dir = mkdtempSync(path.join(os.tmpdir(), 'lighthouse-retry-'));
@@ -81,7 +82,7 @@ test('Lighthouse measurement retries NO_NAVSTART and succeeds when the retry suc
   assert.equal(result.attempts, 2);
   assert.equal(result.outputExists, true);
   assert.deepEqual(JSON.parse(result.output), { attempt: 2 });
-  assert.match(result.stdout + result.stderr, /transient.*retry/i);
+  assert.match(result.stdout + result.stderr, transientRetryNotice);
 });
 
 test('Lighthouse measurement fails after exhausting transient retry attempts', () => {
@@ -96,5 +97,5 @@ test('Lighthouse measurement does not retry ordinary non-transient failures', ()
   assert.equal(result.status, 2);
   assert.equal(result.attempts, 1);
   assert.equal(result.outputExists, false);
-  assert.doesNotMatch(result.stdout + result.stderr, /transient.*retry/i);
+  assert.doesNotMatch(result.stdout + result.stderr, transientRetryNotice);
 });
