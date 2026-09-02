@@ -1,0 +1,311 @@
+name: Candidate Quality CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    paths:
+      - 'src/**'
+      - 'public/**'
+      - 'tests/**'
+      - 'scripts/**'
+      - 'content/**'
+      - '.github/qa/**'
+      - '.github/workflows/candidate-quality-ci.yml'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'astro.config.mjs'
+      - 'wrangler.toml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  candidate-quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install project and pinned QA tools
+        run: |
+          npm ci --no-audit --no-fund
+          python -m pip install --disable-pip-version-check --quiet fonttools==4.64.0 brotli==1.2.0
+          rm -rf /tmp/candidate-qa && mkdir -p /tmp/candidate-qa && cd /tmp/candidate-qa
+          npm init -y >/dev/null
+          npm install --no-audit --no-fund playwright-core@1.55.0 pngjs@7.0.0 axe-core@4.10.3
+          ln -s /tmp/candidate-qa/node_modules "$GITHUB_WORKSPACE/.github/qa/node_modules"
+          CHROME_PATH="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser)"
+          echo "CHROME_PATH=$CHROME_PATH" >> "$GITHUB_ENV"
+      - name: Unit tests
+        run: |
+          set -o pipefail
+          npm test | tee npm-test.log
+      - name: Project audit
+        run: |
+          set -o pipefail
+          npm run audit | tee project-audit.log
+      - name: Astro typecheck
+        run: |
+          set -o pipefail
+          npm run typecheck | tee typecheck.log
+      - name: High severity dependency gate
+        run: |
+          set +e
+          npm audit --omit=dev --audit-level=high --json > dependency-audit.json
+          rc=$?
+          set -e
+          node -e "const r=require('./dependency-audit.json');console.log(JSON.stringify(r.metadata?.vulnerabilities||{},null,2))"
+          test "$rc" -eq 0
+      - name: Czech CMAP coverage
+        run: python .github/qa/czech-font-coverage-test.py
+      - name: Build production-equivalent candidate
+        run: |
+          set -o pipefail
+          npm run build:local | tee build-local.log
+      - name: Start candidate Worker
+        run: |
+          npx -y wrangler@4.128.0 dev --local --port 8788 --inspector-port 9230 > /tmp/candidate-worker.log 2>&1 &
+          for i in {1..45}; do
+            if curl -fsS http://127.0.0.1:8788/ >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/candidate-worker.log
+          exit 1
+      - name: Font resource deduplication
+        env:
+          FONT_QA_BASE_URL: http://127.0.0.1:8788
+        run: node .github/qa/font-resource-dedup-test.mjs
+      - name: Rendered font identity and fallback
+        env:
+          TYPO_BASE_URL: http://127.0.0.1:8788
+        run: node .github/qa/czech-typography-browser-test.mjs
+      - name: Calibrate actual DOM collision detector
+        env:
+          TYPO_BASE_URL: http://127.0.0.1:8788
+        run: node .github/qa/czech-dom-paint-calibration.mjs
+      - name: Full 88-combination Czech typography audit
+        env:
+          TYPO_BASE_URL: http://127.0.0.1:8788
+        run: node .github/qa/czech-typography-site-audit-v2.mjs
+      - name: Actual DOM 88-combination geometry audit
+        env:
+          TYPO_BASE_URL: http://127.0.0.1:8788
+        run: node .github/qa/czech-typography-geometry-audit.mjs
+      - name: Full public acceptance and axe matrix
+        env:
+          QA_BASE_URL: http://127.0.0.1:8788
+        run: node .github/qa/final-public-acceptance.mjs
+      - name: Upload candidate quality evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: candidate-quality-evidence
+          if-no-files-found: warn
+          path: |
+            npm-test.log
+            project-audit.log
+            typecheck.log
+            dependency-audit.json
+            build-local.log
+            font-resource-dedup.json
+            czech-dom-paint-calibration.json
+            czech-typography-site-audit.json
+            czech-typography-geometry-audit.json
+            candidate-screenshots/
+            collision-evidence/
+            final-public-acceptance.json
+      - name: Preserve Worker log
+        if: always()
+        run: tail -120 /tmp/candidate-worker.log || true
+
+  paired-lighthouse:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout candidate with history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          path: candidate
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Resolve and materialize exact merge-base
+        env:
+          EXPECTED_CANDIDATE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+        run: |
+          git -C candidate fetch origin main:refs/remotes/origin/main
+          BASE_SHA="$(git -C candidate merge-base HEAD refs/remotes/origin/main)"
+          CANDIDATE_SHA="$(git -C candidate rev-parse HEAD)"
+          if [ "$CANDIDATE_SHA" != "$EXPECTED_CANDIDATE_SHA" ]; then
+            echo "CANDIDATE SHA: FAIL — expected $EXPECTED_CANDIDATE_SHA, checked out $CANDIDATE_SHA"
+            exit 1
+          fi
+          echo "BASE_SHA=$BASE_SHA" >> "$GITHUB_ENV"
+          echo "CANDIDATE_SHA=$CANDIDATE_SHA" >> "$GITHUB_ENV"
+          git clone --quiet --no-hardlinks candidate baseline
+          git -C baseline checkout --quiet --detach "$BASE_SHA"
+          echo "merge-base=$BASE_SHA"
+          echo "candidate=$CANDIDATE_SHA"
+      - name: Build merge-base and candidate
+        run: |
+          (cd baseline && npm ci --no-audit --no-fund && npm run build:local)
+          (cd candidate && npm ci --no-audit --no-fund && npm run build:local)
+      - name: Install pinned Lighthouse and Wrangler
+        run: |
+          rm -rf /tmp/lighthouse-control && mkdir -p /tmp/lighthouse-control && cd /tmp/lighthouse-control
+          npm init -y >/dev/null
+          npm install --no-audit --no-fund lighthouse@12.8.2 wrangler@4.128.0
+          CHROME_PATH="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser)"
+          echo "CHROME_PATH=$CHROME_PATH" >> "$GITHUB_ENV"
+      - name: Start both Workers
+        run: |
+          WRANGLER=/tmp/lighthouse-control/node_modules/.bin/wrangler
+          (cd baseline && "$WRANGLER" dev --local --port 8789 --inspector-port 9231 > /tmp/baseline-worker.log 2>&1 &)
+          (cd candidate && "$WRANGLER" dev --local --port 8788 --inspector-port 9230 > /tmp/candidate-lh-worker.log 2>&1 &)
+          for port in 8789 8788; do
+            ready=0
+            for i in {1..45}; do
+              if curl -fsS "http://127.0.0.1:$port/" >/dev/null; then ready=1; break; fi
+              sleep 1
+            done
+            if [ "$ready" != 1 ]; then
+              cat /tmp/baseline-worker.log || true
+              cat /tmp/candidate-lh-worker.log || true
+              exit 1
+            fi
+          done
+      - name: Alternating 3x mobile and 1x desktop Lighthouse
+        run: |
+          LH=/tmp/lighthouse-control/node_modules/.bin/lighthouse
+          RETRY_HELPER=candidate/.github/qa/lighthouse-retry.sh
+          chrome=(--chrome-path="$CHROME_PATH" --chrome-flags="--headless --no-sandbox --disable-dev-shm-usage")
+          run_lighthouse() {
+            output="$1"
+            shift
+            LIGHTHOUSE_MAX_ATTEMPTS=3 bash "$RETRY_HELPER" "$output" "$LH" "$@" --output-path="$output"
+          }
+          for n in 1 2 3; do
+            run_lighthouse "baseline-mobile-$n.json" http://127.0.0.1:8789/ --quiet --output=json --only-categories=performance "${chrome[@]}"
+            run_lighthouse "candidate-mobile-$n.json" http://127.0.0.1:8788/ --quiet --output=json --only-categories=performance,accessibility,best-practices,seo "${chrome[@]}"
+          done
+          run_lighthouse baseline-desktop.json http://127.0.0.1:8789/ --quiet --preset=desktop --output=json --only-categories=performance "${chrome[@]}"
+          run_lighthouse candidate-desktop.json http://127.0.0.1:8788/ --quiet --preset=desktop --output=json --only-categories=performance,accessibility,best-practices,seo "${chrome[@]}"
+      - name: Extract and enforce paired performance evidence
+        run: |
+          node --input-type=module <<'EOF'
+          import fs from 'node:fs';
+          import path from 'node:path';
+
+          const median = values => [...values].sort((a,b)=>a-b)[Math.floor(values.length/2)];
+          const score = (r, key) => r.categories[key] ? Math.round(r.categories[key].score * 100) : null;
+          const compactRequest = x => ({
+            file: (()=>{try{return path.basename(new URL(x.url).pathname)}catch{return x.url}})(),
+            url: x.url,
+            transferSize: x.transferSize || 0,
+            resourceSize: x.resourceSize || 0,
+            resourceType: x.resourceType || null,
+            mimeType: x.mimeType || null,
+          });
+          const read = file => {
+            const r = JSON.parse(fs.readFileSync(file));
+            const requests = r.audits['network-requests']?.details?.items || [];
+            const fonts = requests.filter(x => x.resourceType === 'Font' || /\/assets\/fonts\//.test(x.url)).map(compactRequest);
+            const images = requests.filter(x => x.resourceType === 'Image' || /^image\//.test(x.mimeType || '')).map(compactRequest);
+            const hero = images.find(x => /hero-prague/i.test(x.url)) || null;
+            const lcp = r.audits['largest-contentful-paint'];
+            const lcpElementAudit = r.audits['largest-contentful-paint-element'];
+            const lcpItem = lcpElementAudit?.details?.items?.[0] || null;
+            return {
+              file,
+              performance: score(r,'performance'),
+              accessibility: score(r,'accessibility'),
+              bestPractices: score(r,'best-practices'),
+              seo: score(r,'seo'),
+              lcpMs: Math.round(lcp.numericValue),
+              requestCount: requests.length,
+              totalTransferBytes: requests.reduce((sum,x)=>sum+(x.transferSize||0),0),
+              fontRequestCount: fonts.length,
+              fontTransferBytes: fonts.reduce((sum,x)=>sum+x.transferSize,0),
+              fonts,
+              hero,
+              heroJpegFallbackDownloaded: images.some(x => /hero-prague.*\.jpe?g(?:[?#]|$)/i.test(x.url)),
+              jpegImages: images.filter(x => /\.jpe?g(?:[?#]|$)/i.test(x.url)),
+              lcpElement: lcpItem?.node?.snippet || lcpItem?.node?.nodeLabel || null,
+              lcpBreakdown: r.audits['lcp-breakdown-insight']?.details || lcpElementAudit?.details || null,
+            };
+          };
+
+          const baselineMobile = [1,2,3].map(n=>read(`baseline-mobile-${n}.json`));
+          const candidateMobile = [1,2,3].map(n=>read(`candidate-mobile-${n}.json`));
+          const baselineDesktop = read('baseline-desktop.json');
+          const candidateDesktop = read('candidate-desktop.json');
+          const summary = {
+            mergeBaseSha: process.env.BASE_SHA,
+            candidateSha: process.env.CANDIDATE_SHA,
+            baseline: {
+              mobileRuns: baselineMobile.map(x=>({performance:x.performance,lcpMs:x.lcpMs,fontRequestCount:x.fontRequestCount,fontTransferBytes:x.fontTransferBytes,totalTransferBytes:x.totalTransferBytes})),
+              mobileMedian: {performance:median(baselineMobile.map(x=>x.performance)),lcpMs:median(baselineMobile.map(x=>x.lcpMs))},
+              desktop: {performance:baselineDesktop.performance,lcpMs:baselineDesktop.lcpMs,fontRequestCount:baselineDesktop.fontRequestCount,fontTransferBytes:baselineDesktop.fontTransferBytes,totalTransferBytes:baselineDesktop.totalTransferBytes},
+            },
+            candidate: {
+              mobileRuns: candidateMobile.map(x=>({performance:x.performance,lcpMs:x.lcpMs,accessibility:x.accessibility,bestPractices:x.bestPractices,seo:x.seo,fontRequestCount:x.fontRequestCount,fontTransferBytes:x.fontTransferBytes,totalTransferBytes:x.totalTransferBytes})),
+              mobileMedian: {performance:median(candidateMobile.map(x=>x.performance)),lcpMs:median(candidateMobile.map(x=>x.lcpMs))},
+              desktop: {performance:candidateDesktop.performance,lcpMs:candidateDesktop.lcpMs,accessibility:candidateDesktop.accessibility,bestPractices:candidateDesktop.bestPractices,seo:candidateDesktop.seo,fontRequestCount:candidateDesktop.fontRequestCount,fontTransferBytes:candidateDesktop.fontTransferBytes,totalTransferBytes:candidateDesktop.totalTransferBytes},
+            },
+            representativeMiddleMobile: {baseline:baselineMobile[1],candidate:candidateMobile[1]},
+          };
+          summary.delta = {
+            mobilePerformance: summary.candidate.mobileMedian.performance - summary.baseline.mobileMedian.performance,
+            mobileLcpMs: summary.candidate.mobileMedian.lcpMs - summary.baseline.mobileMedian.lcpMs,
+            desktopPerformance: summary.candidate.desktop.performance - summary.baseline.desktop.performance,
+            desktopLcpMs: summary.candidate.desktop.lcpMs - summary.baseline.desktop.lcpMs,
+            middleFontRequests: candidateMobile[1].fontRequestCount - baselineMobile[1].fontRequestCount,
+            middleFontTransferBytes: candidateMobile[1].fontTransferBytes - baselineMobile[1].fontTransferBytes,
+          };
+          fs.writeFileSync('paired-lighthouse-summary.json', JSON.stringify(summary,null,2));
+          console.log(JSON.stringify(summary,null,2));
+
+          const qualityRuns = [...candidateMobile, candidateDesktop];
+          if (qualityRuns.some(x => x.accessibility !== 100 || x.bestPractices !== 100 || x.seo !== 100)) {
+            console.error('LIGHTHOUSE QUALITY: FAIL — accessibility/best-practices/SEO must be 100');
+            process.exit(1);
+          }
+          if (summary.delta.mobileLcpMs > 250) {
+            console.error(`PERFORMANCE: FAIL — median mobile LCP regression ${summary.delta.mobileLcpMs}ms exceeds 250ms`);
+            process.exit(1);
+          }
+          if (summary.delta.mobilePerformance < -3) {
+            console.error(`PERFORMANCE: FAIL — median mobile score regression ${summary.delta.mobilePerformance} exceeds 3 points`);
+            process.exit(1);
+          }
+          if (candidateMobile[1].fontRequestCount > baselineMobile[1].fontRequestCount) {
+            console.error('FONT DELIVERY: FAIL — candidate has more font requests than merge-base');
+            process.exit(1);
+          }
+          if (candidateMobile[1].fontTransferBytes > baselineMobile[1].fontTransferBytes + 10000) {
+            console.error('FONT DELIVERY: FAIL — candidate font transfer grew by more than 10 KB');
+            process.exit(1);
+          }
+          console.log('PAIRED LIGHTHOUSE: PASS');
+          EOF
+      - name: Upload paired Lighthouse evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: paired-lighthouse-evidence
+          if-no-files-found: warn
+          path: |
+            baseline-mobile-*.json
+            candidate-mobile-*.json
+            baseline-desktop.json
+            candidate-desktop.json
+            paired-lighthouse-summary.json
+            /tmp/baseline-worker.log
+            /tmp/candidate-lh-worker.log

@@ -1,0 +1,9 @@
+/* Czech glyphs are embedded in the canonical self-hosted faces declared by site.css. */
+
+/* Measured multiline display fixes: keep the editorial scale, remove line-box collisions. */
+.hero h1,.subhero h1,.split-head .h2{line-height:1}
+.final-cta h2{line-height:1.01}
+.service-detail h2{line-height:1.08}
+.case h2{line-height:1}
+.contact-aside h2{line-height:1.01}
+.story-copy h2{line-height:.98}
