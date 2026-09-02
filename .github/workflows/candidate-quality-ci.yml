@@ -132,14 +132,21 @@ jobs:
         with:
           fetch-depth: 0
           path: candidate
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
       - uses: actions/setup-node@v4
         with:
           node-version: 22
       - name: Resolve and materialize exact merge-base
+        env:
+          EXPECTED_CANDIDATE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
         run: |
           git -C candidate fetch origin main:refs/remotes/origin/main
           BASE_SHA="$(git -C candidate merge-base HEAD refs/remotes/origin/main)"
           CANDIDATE_SHA="$(git -C candidate rev-parse HEAD)"
+          if [ "$CANDIDATE_SHA" != "$EXPECTED_CANDIDATE_SHA" ]; then
+            echo "CANDIDATE SHA: FAIL — expected $EXPECTED_CANDIDATE_SHA, checked out $CANDIDATE_SHA"
+            exit 1
+          fi
           echo "BASE_SHA=$BASE_SHA" >> "$GITHUB_ENV"
           echo "CANDIDATE_SHA=$CANDIDATE_SHA" >> "$GITHUB_ENV"
           git clone --quiet --no-hardlinks candidate baseline
@@ -177,13 +184,19 @@ jobs:
       - name: Alternating 3x mobile and 1x desktop Lighthouse
         run: |
           LH=/tmp/lighthouse-control/node_modules/.bin/lighthouse
+          RETRY_HELPER=candidate/.github/qa/lighthouse-retry.sh
           chrome=(--chrome-path="$CHROME_PATH" --chrome-flags="--headless --no-sandbox --disable-dev-shm-usage")
+          run_lighthouse() {
+            output="$1"
+            shift
+            LIGHTHOUSE_MAX_ATTEMPTS=3 bash "$RETRY_HELPER" "$output" "$LH" "$@" --output-path="$output"
+          }
           for n in 1 2 3; do
-            "$LH" http://127.0.0.1:8789/ --quiet --output=json --only-categories=performance "${chrome[@]}" --output-path="baseline-mobile-$n.json"
-            "$LH" http://127.0.0.1:8788/ --quiet --output=json --only-categories=performance,accessibility,best-practices,seo "${chrome[@]}" --output-path="candidate-mobile-$n.json"
+            run_lighthouse "baseline-mobile-$n.json" http://127.0.0.1:8789/ --quiet --output=json --only-categories=performance "${chrome[@]}"
+            run_lighthouse "candidate-mobile-$n.json" http://127.0.0.1:8788/ --quiet --output=json --only-categories=performance,accessibility,best-practices,seo "${chrome[@]}"
           done
-          "$LH" http://127.0.0.1:8789/ --quiet --preset=desktop --output=json --only-categories=performance "${chrome[@]}" --output-path=baseline-desktop.json
-          "$LH" http://127.0.0.1:8788/ --quiet --preset=desktop --output=json --only-categories=performance,accessibility,best-practices,seo "${chrome[@]}" --output-path=candidate-desktop.json
+          run_lighthouse baseline-desktop.json http://127.0.0.1:8789/ --quiet --preset=desktop --output=json --only-categories=performance "${chrome[@]}"
+          run_lighthouse candidate-desktop.json http://127.0.0.1:8788/ --quiet --preset=desktop --output=json --only-categories=performance,accessibility,best-practices,seo "${chrome[@]}"
       - name: Extract and enforce paired performance evidence
         run: |
           node --input-type=module <<'EOF'
