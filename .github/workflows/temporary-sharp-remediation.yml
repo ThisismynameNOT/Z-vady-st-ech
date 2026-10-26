@@ -32,7 +32,9 @@ jobs:
       - name: Regenerate lockfile with patched Sharp
         run: |
           npm pkg set 'overrides.sharp=^0.35.5'
-          npm install --no-fund
+          npm pkg set 'overrides.dompurify=^3.4.17'
+          npm install --save-exact @tinacms/auth@1.1.5 astro@7.4.2 tinacms@3.15.0 wrangler@4.152.0
+          npm audit fix --no-fund
       - name: Confirm every Sharp instance patched (GREEN)
         run: |
           node - <<'NODE'
