@@ -40,8 +40,8 @@ jobs:
           const p = 'package.json';
           const pkg = JSON.parse(fs.readFileSync(p, 'utf8'));
           pkg.overrides ||= {};
-          delete pkg.overrides.zod;
-          pkg.overrides['zod@^4.0.0'] = '4.6.7';
+          delete pkg.overrides['zod@^4.0.0'];
+          pkg.overrides.zod = '4.6.7';
           fs.writeFileSync(p, JSON.stringify(pkg, null, 2)+'\n');
           NODE
           npm install --save-exact @tinacms/auth@1.1.5 astro@7.4.2 tinacms@3.15.0 wrangler@4.152.0
@@ -64,6 +64,15 @@ jobs:
         run: |
           npm ci --no-fund
           npm audit --omit=dev --audit-level=high
+      - name: Inspect Tina Zod import compatibility
+        run: |
+          node - <<'NODE'
+          const fs=require('node:fs');
+          const p='node_modules/@tinacms/schema-tools/dist/index.js';
+          if(!fs.existsSync(p)) throw Error('Tina schema-tools entrypoint missing');
+          const rows=fs.readFileSync(p,'utf8').split('\n');
+          console.log('Zod import sites:',rows.map((t,i)=> ({line:i+1,text:t.slice(0,220)})).filter(x=>/from\s*['"]zod['"]|require\(['"]zod['"]\)|z\.function\(|zod\/v3/.test(x.text)).slice(0,18));
+          NODE
       - name: Run existing regression tests
         run: |
           npm test
