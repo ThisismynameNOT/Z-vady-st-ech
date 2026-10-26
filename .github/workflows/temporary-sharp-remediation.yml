@@ -33,6 +33,9 @@ jobs:
         run: |
           npm pkg set 'overrides.sharp=^0.35.5'
           npm pkg set 'overrides.dompurify=^3.4.17'
+          npm pkg set 'overrides.undici=7.30.1'
+          npm pkg set 'overrides.katex=0.18.2'
+          npm pkg set 'overrides.zod=4.6.7'
           npm install --save-exact @tinacms/auth@1.1.5 astro@7.4.2 tinacms@3.15.0 wrangler@4.152.0
           npm install --save-dev --save-exact @tinacms/cli@4.0.3
           npm audit fix --no-fund || true
