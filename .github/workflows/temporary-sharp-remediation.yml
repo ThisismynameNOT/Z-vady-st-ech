@@ -45,7 +45,7 @@ jobs:
           pkg.overrides.zod = '4.6.7';
           fs.writeFileSync(p, JSON.stringify(pkg, null, 2)+'\n');
           NODE
-          npm install --save-exact @tinacms/auth@1.1.5 astro@7.4.2 tinacms@3.15.0 wrangler@4.152.0
+          npm install --save-exact @tinacms/auth@1.1.5 astro@7.4.2 @astrojs/cloudflare@14.4.2 tinacms@3.15.0 wrangler@4.152.0
           npm install --save-dev --save-exact @tinacms/cli@4.0.3
           npm audit fix --no-fund || true
       - name: Confirm every Sharp instance patched (GREEN)
