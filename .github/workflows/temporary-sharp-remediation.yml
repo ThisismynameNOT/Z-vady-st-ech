@@ -19,15 +19,15 @@ jobs:
         with:
           node-version: 22.23.4
           cache: npm
-      - name: Confirm vulnerable baseline (RED)
+      - name: Verify already patched baseline
         run: |
           node - <<'NODE'
           const lock=require('./package-lock.json');
           const items=Object.entries(lock.packages).filter(([p])=> /(^|\/)node_modules\/sharp$/.test(p));
-          if(!items.some(([,v])=>/^(0\.(?:[0-2]\.|3[0-4]\.|35\.[0-4]$))/.test(v.version))) {
-            throw new Error('Expected outdated sharp baseline not found');
+          if(!items.some(([,v])=>/^0\.35\.5$/.test(v.version))) {
+            throw new Error('Expected patched sharp 0.35.5 baseline not found');
           }
-          console.log('Confirmed outdated Sharp instances',items.map(([p,v])=>p+': '+v.version));
+          console.log('Confirmed patched Sharp instances',items.map(([p,v])=>p+': '+v.version));
           NODE
       - name: Regenerate lockfile with patched Sharp
         run: |
@@ -82,7 +82,8 @@ jobs:
           npm run build:local
       - name: Commit verified package changes only
         run: |
-          git add package.json package-lock.json scripts/patch-tina-zod4.mjs
+          git status --short
+          git add package.json package-lock.json scripts/patch-tina-zod4.mjs tina/tina-lock.json
           if ! git diff --cached --quiet; then
             git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'fix(security): require patched Sharp across dependency tree [skip ci]'
             git push origin HEAD:refs/heads/security/sharp-oct-2026
