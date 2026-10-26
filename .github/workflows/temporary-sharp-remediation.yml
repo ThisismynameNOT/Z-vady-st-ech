@@ -32,6 +32,7 @@ jobs:
       - name: Regenerate lockfile with patched Sharp
         run: |
           npm pkg set 'overrides.sharp=^0.35.5'
+          npm pkg set 'scripts.postinstall=node scripts/patch-tina-zod4.mjs'
           npm pkg set 'overrides.dompurify=^3.4.17'
           npm pkg set 'overrides.undici=7.30.1'
           npm pkg set 'overrides.katex=0.18.2'
@@ -81,7 +82,7 @@ jobs:
           npm run build:local
       - name: Commit verified package changes only
         run: |
-          git add package.json package-lock.json
+          git add package.json package-lock.json scripts/patch-tina-zod4.mjs
           if ! git diff --cached --quiet; then
             git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'fix(security): require patched Sharp across dependency tree [skip ci]'
             git push origin HEAD:refs/heads/security/sharp-oct-2026
