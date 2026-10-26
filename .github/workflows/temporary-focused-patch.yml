@@ -1,0 +1,59 @@
+name: Targeted Tina auth, DOMPurify and Sharp remediation
+on:
+  push:
+    branches: [security/tina-auth-sharp-focused-2026]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  patch-and-test:
+    if: github.ref == 'refs/heads/security/tina-auth-sharp-focused-2026'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.23.4'
+          cache: npm
+      - name: Confirm vulnerable baseline
+        run: |
+          node - <<'NODE'
+          const p=require('./package-lock.json');
+          const a=p.packages['node_modules/@tinacms/auth']?.version;
+          if(a!=='1.1.3')throw Error('Expected baseline @tinacms/auth 1.1.3 but found '+a);
+          NODE
+      - name: Update vulnerable runtime packages
+        run: |
+          npm pkg set 'overrides.sharp=^0.35.5'
+          npm pkg set 'overrides.dompurify=^3.4.17'
+          npm install --save-exact @tinacms/auth@1.1.5 astro@7.4.2 tinacms@3.15.0
+      - name: Verify all lockfile versions
+        run: |
+          node - <<'NODE'
+          const p=require('./package-lock.json');
+          const auth=p.packages['node_modules/@tinacms/auth']?.version;
+          if(auth!=='1.1.5')throw Error('Expected patched Tina auth: '+auth);
+          for(const [path,pkg] of Object.entries(p.packages)){
+            if(/(^|\/)node_modules\/sharp$/.test(path)&&/^0\.(3[0-4]\.|35\.[0-4]$)/.test(pkg.version))throw Error('Vulnerable sharp '+path+' '+pkg.version);
+            if(/(^|\/)node_modules\/dompurify$/.test(path)&&+pkg.version.split('.')[2]<17)throw Error('Vulnerable DOMPurify '+path+' '+pkg.version);
+          }
+          console.log('Verified patched Tina authentication, Sharp and DOMPurify lockfile');
+          NODE
+      - name: Install locked dependencies and verify existing project
+        run: |
+          npm ci --no-fund
+          npm test
+          npm run audit
+          npm run typecheck
+          npm run build:local
+      - name: Report residual production advisories without masking build failure
+        run: |
+          npm audit --omit=dev --audit-level=high || true
+      - name: Commit only if functional checks passed
+        run: |
+          git add package.json package-lock.json
+          if ! git diff --cached --quiet; then
+            git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'fix(security): patch Tina authorization, Sharp and DOMPurify [skip ci]'
+            git push origin HEAD:refs/heads/security/tina-auth-sharp-focused-2026
+          fi
